@@ -94,10 +94,12 @@ def main():
 
     url = "http://127.0.0.1:%d/?platform=app" % port
     icon_path = os.path.join(HERE, "network-console-icon.ico")
+    # Kenar cubugu 232px yer kapliyor; varsayilan pencere ona gore genis.
+    # min_size, kenar cubugunun daralmis (76px) haline gore secildi.
     window = webview.create_window(
         "Network Console", url,
-        width=1180, height=860, min_size=(860, 620),
-        background_color="#0D0D13",
+        width=1320, height=900, min_size=(900, 640),
+        background_color="#08080D",
     )
     webview.start(icon=icon_path if os.path.isfile(icon_path) else None)
 
