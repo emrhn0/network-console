@@ -97,7 +97,7 @@ def main():
     window = webview.create_window(
         "Network Console", url,
         width=1180, height=860, min_size=(860, 620),
-        background_color="#161B18",
+        background_color="#0D0D13",
     )
     webview.start(icon=icon_path if os.path.isfile(icon_path) else None)
 
