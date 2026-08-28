@@ -1,0 +1,121 @@
+name: Build Windows installer
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            VERSION="0.0.0-dev"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pywebview
+
+      - name: Build NetworkConsole.exe (app shell)
+        run: pyinstaller NetworkConsole.spec
+
+      - name: Build NetworkConsole-Agent.exe (local agent)
+        run: pyinstaller NetworkConsole-Agent.spec
+
+      - name: Stage bundled files next to the exes
+        shell: bash
+        run: |
+          cp dist/NetworkConsole.exe .
+          cp dist/NetworkConsole-Agent.exe .
+
+      - name: Generate Setup spec for this version
+        shell: bash
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          cat > "Network_Console_${VERSION}_Setup.spec" <<EOF
+          # -*- mode: python ; coding: utf-8 -*-
+
+          a = Analysis(
+              ['setup.py'],
+              pathex=[],
+              binaries=[],
+              datas=[('NetworkConsole.exe', '.'), ('NetworkConsole-Agent.exe', '.'), ('ag-konsolu.html', '.'), ('network-console-icon.ico', '.')],
+              hiddenimports=[],
+              hookspath=[],
+              hooksconfig={},
+              runtime_hooks=[],
+              excludes=[],
+              noarchive=False,
+              optimize=0,
+          )
+          pyz = PYZ(a.pure)
+
+          exe = EXE(
+              pyz,
+              a.scripts,
+              a.binaries,
+              a.datas,
+              [],
+              name='Network_Console_${VERSION}_Setup',
+              debug=False,
+              bootloader_ignore_signals=False,
+              strip=False,
+              upx=True,
+              upx_exclude=[],
+              runtime_tmpdir=None,
+              console=True,
+              disable_windowed_traceback=False,
+              argv_emulation=False,
+              target_arch=None,
+              codesign_identity=None,
+              entitlements_file=None,
+              icon=['network-console-icon.ico'],
+          )
+          EOF
+
+      - name: Build Setup.exe
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: pyinstaller "Network_Console_${env:VERSION}_Setup.spec"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Network_Console_${{ steps.ver.outputs.version }}_Setup
+          path: dist/Network_Console_${{ steps.ver.outputs.version }}_Setup.exe
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          ASSET="dist/Network_Console_${VERSION}_Setup.exe"
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG" "$ASSET" \
+            --title "Network Console $VERSION" \
+            --notes "Windows installer for Network Console $VERSION. Build otomatik olarak GitHub Actions ile üretildi." \
+            || gh release upload "$TAG" "$ASSET" --clobber
