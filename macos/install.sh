@@ -36,7 +36,11 @@ echo "[3/6] Dosyalar kopyalaniyor..."
 cp "$REPO_DIR/app.py" "$RES_DIR/app.py"
 cp "$REPO_DIR/ping-agent.py" "$RES_DIR/ping-agent.py"
 cp "$REPO_DIR/ag-konsolu.html" "$RES_DIR/ag-konsolu.html"
-[ -f "$REPO_DIR/vt-key.txt" ] && cp "$REPO_DIR/vt-key.txt" "$RES_DIR/vt-key.txt"
+# vt-key.txt istege bagli. "set -e" altinda ciplak "[ -f x ] && cp" kalibi,
+# dosya yoksa listeyi basarisiz sayip kurulumu burada sessizce durdurur.
+if [ -f "$REPO_DIR/vt-key.txt" ]; then
+  cp "$REPO_DIR/vt-key.txt" "$RES_DIR/vt-key.txt"
+fi
 cp "$REPO_DIR/network-console-icon.png" "$RES_DIR/network-console-icon.png"
 
 echo "[4/6] Simge (.icns) olusturuluyor..."
