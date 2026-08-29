@@ -798,6 +798,13 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     flex:none; border-top:1px solid var(--line); padding:14px 16px 16px;
     display:flex; flex-direction:column; gap:12px;
   }
+  /* calisan surum - silik, kucuk, sadece bilgi amacli */
+  .sidebar-version{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.08em;
+    color:var(--ink-ghost); user-select:text;
+  }
+  .sidebar-version:empty{display:none}
+
   .agent-card{display:flex;flex-direction:column;gap:7px}
   .agent-row{
     display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -889,6 +896,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     :root[data-platform="app"] .sidebar-item::after,
     :root[data-platform="app"] .sidebar-brand .sb-text,
     :root[data-platform="app"] #themeToggleAppText,
+    :root[data-platform="app"] .sidebar-version,
     :root[data-platform="app"] .agent-card{display:none}
     :root[data-platform="app"] .sidebar-foot{padding:12px 10px 14px}
     :root[data-platform="app"] .sidebar-item{justify-content:center;padding:11px 0}
@@ -962,6 +970,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     </a>
     <div class="sidebar-tabs" id="sidebarTabs"></div>
     <div class="sidebar-foot">
+      <div class="sidebar-version" id="sbVersion"></div>
       <div class="agent-card">
         <div class="agent-row">Agent <b id="sbAgent" data-tone="off">searching…</b></div>
         <div class="agent-row">Method <b id="sbMode">—</b></div>
@@ -1999,6 +2008,11 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     set("sbMode", method);
     set("wAgent", who);
     set("wMode", method);
+
+    // Surumu ajan bildirir (tek dogru kaynak); ajan yoksa satir gizli kalir.
+    const ver = $("sbVersion");
+    if (ver) ver.textContent = (agentInfo && agentInfo.app_version)
+      ? "v" + agentInfo.app_version : "";
   }
   const SESSION_START = Date.now();
   setInterval(() => {

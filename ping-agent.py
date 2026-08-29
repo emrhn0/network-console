@@ -93,6 +93,11 @@ TRACE_GATE = threading.BoundedSemaphore(3)   # traceroute uzun surer, ayri tavan
 VT_GATE = threading.BoundedSemaphore(2)   # VirusTotal kotasini korumak icin ayri, dar tavan
 PING_SWEEP_POOL = 16   # sadece belgeleme amacli - gercek havuz tarayicida (JS)
 
+# Uygulama surumu. Arayuz bunu /api/health'ten okuyup gosterir, boylece
+# surum tek yerde tanimli kalir. setup.py ve macos/install.sh ile ayni
+# olmali; CI her etiketde ucunun de etiketle esledigini dogrular.
+APP_VERSION = "1.5.0"
+
 PROBE_PATHS = ("/api/health", "/api/ping", "/api/tcp", "/api/resolve",
                "/api/traceroute", "/api/dns", "/api/cert", "/api/http", "/api/vtcheck")
 
@@ -882,6 +887,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/health":
             return self._json({
                 "agent": "ping-konsolu", "version": 4,
+                "app_version": APP_VERSION,
                 "host": socket.gethostname(),
                 "os": platform.system() + " " + platform.release(),
                 "dns_servers": detect_dns_servers(),
