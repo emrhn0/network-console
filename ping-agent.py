@@ -67,6 +67,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs, unquote, urlencode, urljoin, urlsplit
 
 WIN = platform.system().lower().startswith("win")
+# macOS/BSD ile Linux'ta "ping -W" ayni bayrak, FARKLI birim:
+#   Linux : -W <saniye>
+#   BSD   : -W <milisaniye>
+# Ayrimi yapmazsak BSD'de "-W 3" 3 milisaniye olur; 26 ms'lik bir hedef
+# yanit verse bile ping onu gec sayip "time=" satirini hic basmaz ve
+# olcum "yanit yok" gorunur. (traceroute -w her ikisinde de saniyedir.)
+BSD = platform.system().lower() in ("darwin", "freebsd", "openbsd", "netbsd")
 NO_WINDOW = 0x08000000 if WIN else 0
 
 SAFE_HOST = re.compile(r"^[A-Za-z0-9._:\-\[\]]{1,255}$")
@@ -144,7 +151,11 @@ def run_ping(host, timeout_ms=2000):
     host = host.strip("[]")
     if WIN:
         cmd = ["ping", "-n", "1", "-w", str(timeout_ms), host]
+    elif BSD:
+        # BSD/macOS: -W milisaniye alir
+        cmd = ["ping", "-c", "1", "-W", str(max(1, int(timeout_ms))), host]
     else:
+        # Linux: -W saniye alir
         secs = max(1, int(round(timeout_ms / 1000)))
         cmd = ["ping", "-c", "1", "-W", str(secs), host]
 
