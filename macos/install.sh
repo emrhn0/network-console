@@ -24,9 +24,16 @@ LAUNCH_AGENTS="$HOME/Library/LaunchAgents"
 PLIST="$LAUNCH_AGENTS/com.networkconsole.agent.plist"
 
 echo "[1/6] Onceki surum kapatiliyor..."
-pkill -f "NetworkConsole/Resources/app.py" 2>/dev/null || true
-pkill -f "NetworkConsole/Resources/ping-agent.py" 2>/dev/null || true
+# Desen gercek yola uymali: .../NetworkConsole.app/Contents/Resources/...
+# Eskiden "NetworkConsole/Resources/..." araniyordu ve hicbir sureci
+# eslemedigi icin eski ajan hayatta kaliyor, guncellemeden sonra da
+# 8787'yi eski koduyla dinlemeye devam ediyordu.
 launchctl unload "$PLIST" 2>/dev/null || true
+pkill -f "NetworkConsole\.app/Contents/Resources/app\.py" 2>/dev/null || true
+pkill -f "NetworkConsole\.app/Contents/Resources/ping-agent\.py" 2>/dev/null || true
+sleep 1
+# hala ayaktaysa zorla
+pkill -9 -f "NetworkConsole\.app/Contents/Resources/ping-agent\.py" 2>/dev/null || true
 
 echo "[2/6] Uygulama klasoru olusturuluyor -> $APP_DIR"
 # Var olan .venv'i koru: yeniden kurulumda pywebview/pyobjc'yi bastan
@@ -120,8 +127,8 @@ cat > "$CONTENTS/Info.plist" <<PLIST
   <key>CFBundleName</key><string>Network Console</string>
   <key>CFBundleDisplayName</key><string>Network Console</string>
   <key>CFBundleIdentifier</key><string>com.networkconsole.app</string>
-  <key>CFBundleVersion</key><string>1.4.1</string>
-  <key>CFBundleShortVersionString</key><string>1.4.1</string>
+  <key>CFBundleVersion</key><string>1.4.2</string>
+  <key>CFBundleShortVersionString</key><string>1.4.2</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleExecutable</key><string>NetworkConsole</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
