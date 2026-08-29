@@ -1,5 +1,20 @@
+# derleme ciktilari
 build/
 dist/
 __pycache__/
 *.pyc
+*.spec.bak
+
+# PyInstaller'in surume gore urettigi Setup spec'i (CI olusturur)
+Network_Console_*_Setup.spec
+
+# derlenmis ikililer - Releases'ten dagitilir, repoda tutulmaz
+*.exe
+*.dmg
+*.app/
+
+# gizli bilgi - anahtar repoya girmesin
+vt-key.txt
+
+# isletim sistemi
 .DS_Store
