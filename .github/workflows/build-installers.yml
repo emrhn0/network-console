@@ -172,16 +172,37 @@ jobs:
           NOTES=$(cat <<EOF
           Network Console ${VERSION}
 
-          **Windows** — \`Network_Console_${VERSION}_Setup.exe\` dosyasini indirip calistirin.
+          ## Windows
+
+          \`Network_Console_${VERSION}_Setup.exe\` dosyasini indirip calistirin.
           Yonetici hakki gerekmez; kullanici profiline kurulur, masaustu ve
           Baslat Menusu kisayollarini olusturur.
 
-          **macOS** — \`Network_Console_${VERSION}_macOS.dmg\` dosyasini acip
-          uygulamayi Applications klasorune surukleyin. Paket imzasiz oldugu
-          icin ilk acilista macOS uyari verir: uygulamaya **sag tiklayip Ac**
-          deyin (ya da Sistem Ayarlari > Gizlilik ve Guvenlik > Yine de Ac).
-          Python kurmaniza gerek yoktur, her sey pakete gomuludur.
+          ## macOS
 
+          1. \`Network_Console_${VERSION}_macOS.dmg\` dosyasini acin ve
+             uygulamayi **Applications** klasorune surukleyin.
+          2. Terminal'i acip su komutu bir kez calistirin:
+
+          \`\`\`
+          xattr -dr com.apple.quarantine /Applications/NetworkConsole.app
+          \`\`\`
+
+          3. Uygulamayi normal sekilde acin.
+
+          **2. adim neden gerekli?** Paket Apple tarafindan notarize edilmemistir
+          (bunun icin ucretli Apple Developer hesabi gerekir). Tarayici indirilen
+          dosyaya bir "internetten geldi" damgasi (\`com.apple.quarantine\`) koyar;
+          macOS bu damgayi gorunce imzasiz uygulamayi engeller ve **sadece "Move to
+          Trash" / "Done"** secenegini gosterir - guncel macOS surumlerinde o
+          diyalogda "Open Anyway" **yoktur**. Yukaridaki komut yalnizca bu damgayi
+          siler, uygulamaya dokunmaz. Her yeni surumu indirdiginizde tekrar
+          gerekir.
+
+          Python kurmaniza gerek yoktur; Python, pywebview ve olcum ajani pakete
+          gomuludur.
+
+          ---
           Paketler bu etiketten GitHub Actions ile otomatik uretilmistir.
           EOF
           )
