@@ -72,11 +72,18 @@ def wait_ready(port, timeout=10):
     return False
 
 
+def agent_binary():
+    """Derlenmis pakette ajan, yanimizda ayri bir calistirilabilir olarak gelir.
+    Adi Windows'ta .exe uzantili, macOS/Linux'ta uzantisizdir."""
+    return os.path.join(HERE, "NetworkConsole-Agent.exe" if WIN else "NetworkConsole-Agent")
+
+
 def start_agent(port):
-    agent_exe = os.path.join(HERE, "NetworkConsole-Agent.exe")
+    agent_exe = agent_binary()
     if getattr(sys, "frozen", False) and os.path.isfile(agent_exe):
         cmd = [agent_exe, "--port", str(port)]
     else:
+        # Kaynaktan calisirken ajani ayni yorumlayiciyla baslat.
         script = os.path.join(HERE, "ping-agent.py")
         cmd = [sys.executable, script, "--port", str(port)]
     kwargs = {}
