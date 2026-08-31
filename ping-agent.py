@@ -38,7 +38,9 @@ Onemli (varsayilan, guvenli davranis):
     olcum tam olarak kendi "ping" komutlariyla birebir ayni olur.
     Eski (paylasimli) davranisi geri istersen --allow-remote-probe kullan.
 
-Bagimlilik yok, sadece Python 3 standart kutuphanesi.
+Bagimlilik yok, sadece Python 3 standart kutuphanesi. Windows'ta gorev
+cubugu simgesi (pystray + Pillow) opsiyoneldir - kurulu degilse ajan
+simgesiz calismaya devam eder; --no-tray ile de kapatilabilir.
 """
 
 import argparse
@@ -62,9 +64,17 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs, unquote, urlencode, urljoin, urlsplit
+
+try:
+    import pystray
+    from PIL import Image
+    TRAY_AVAILABLE = True
+except ImportError:
+    TRAY_AVAILABLE = False
 
 WIN = platform.system().lower().startswith("win")
 # macOS/BSD ile Linux'ta "ping -W" ayni bayrak, FARKLI birim:
@@ -96,7 +106,7 @@ PING_SWEEP_POOL = 16   # sadece belgeleme amacli - gercek havuz tarayicida (JS)
 # Uygulama surumu. Arayuz bunu /api/health'ten okuyup gosterir, boylece
 # surum tek yerde tanimli kalir. setup.py ve macos/install.sh ile ayni
 # olmali; CI her etiketde ucunun de etiketle esledigini dogrular.
-APP_VERSION = "1.5.0"
+APP_VERSION = "1.5.1"
 
 PROBE_PATHS = ("/api/health", "/api/ping", "/api/tcp", "/api/resolve",
                "/api/traceroute", "/api/dns", "/api/cert", "/api/http", "/api/vtcheck")
@@ -749,10 +759,10 @@ def _vt_request(path, key, method="GET", data=None, timeout=10):
             return json.loads(resp.read().decode("utf-8"))
 
 
-def run_vtcheck(url):
-    key = load_vt_key()
+def run_vtcheck(url, client_key=None):
+    key = (client_key or "").strip() or load_vt_key()
     if not key:
-        return {"ok": False, "error": "VirusTotal anahtari ayarli degil - klasordeki vt-key.txt dosyasina yapistir"}
+        return {"ok": False, "error": "VirusTotal anahtari tanimli degil - uygulamada 'Aktive Et' ile kendi anahtarinizi ekleyin"}
     if not url or len(url) > 2048:
         return {"ok": False, "error": "gecersiz URL"}
     parts = urlsplit(url)
@@ -942,7 +952,8 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/vtcheck":
             url = arg("url")
-            r = run_vtcheck(url)
+            client_key = self.headers.get("X-VT-Key", "").strip()
+            r = run_vtcheck(url, client_key)
             log(peer, "vtcheck", url, r.get("malicious", r.get("error")))
             return self._json(r)
 
@@ -1020,6 +1031,49 @@ def local_ips():
     return sorted(i for i in ips if not i.startswith("127."))
 
 
+def _tray_icon_image(app_dir):
+    for name in ("network-console-icon.ico", "network-console-icon.png"):
+        p = os.path.join(app_dir, name)
+        if os.path.isfile(p):
+            try:
+                return Image.open(p)
+            except (OSError, ValueError):
+                continue
+    return Image.new("RGB", (64, 64), "#1E8E5A")
+
+
+def run_with_tray(srv, port, app_dir):
+    """Sunucuyu arka planda calistirir, gorev cubugu bildirim alaninda simge gosterir.
+    Simge baslatilamazsa (orn. masaustu oturumu yok) sunucu yine de calismaya devam eder."""
+    server_thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    server_thread.start()
+
+    def do_open(icon, item):
+        webbrowser.open("http://127.0.0.1:%d/?platform=app" % port)
+
+    def do_quit(icon, item):
+        icon.stop()
+        srv.shutdown()
+
+    menu = pystray.Menu(
+        pystray.MenuItem("Network Console Agent — port %d" % port, None, enabled=False),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem("Sayfayi ac", do_open, default=True),
+        pystray.MenuItem("Kapat", do_quit),
+    )
+    icon = pystray.Icon("network-console-agent", _tray_icon_image(app_dir),
+                         "Network Console Agent calisiyor", menu)
+    try:
+        icon.run()
+    except Exception as e:
+        print("  Simge baslatilamadi (%s), ajan simgesiz calismaya devam ediyor." % e)
+        try:
+            while server_thread.is_alive():
+                server_thread.join(1)
+        except KeyboardInterrupt:
+            srv.shutdown()
+
+
 def main():
     global HTML_PATH, ALLOW_NETS, TOKEN, ACCESS_LOG, ALLOW_REMOTE_PROBE, APP_DIR
 
@@ -1048,6 +1102,7 @@ def main():
     ap.add_argument("--access-log", action="store_true")
     ap.add_argument("--allow-remote-probe", action="store_true")
     ap.add_argument("--vt-key", default=None, help="VirusTotal API anahtari (yoksa vt-key.txt dosyasindan okunur)")
+    ap.add_argument("--no-tray", action="store_true", help="gorev cubugu simgesini gosterme")
     a = ap.parse_args()
 
     HTML_PATH = a.html or find_html(here)
@@ -1093,9 +1148,16 @@ def main():
             print("               kendi bilgisayarlarinda ayni scripti calistirmali:")
             print("               python ping-agent.py")
     print("  VirusTotal : %s" % ("ayarli" if load_vt_key() else "ayarli degil (vt-key.txt ekleyin ya da --vt-key kullanin)"))
+
+    use_tray = WIN and TRAY_AVAILABLE and not a.no_tray
+    if use_tray:
+        print("  Gorev cubugu simgesinden kapatabilirsiniz.")
+        print("")
+        run_with_tray(srv, a.port, here)
+        return
+
     print("  Durdurmak icin Ctrl+C")
     print("")
-
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

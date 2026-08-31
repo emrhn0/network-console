@@ -607,6 +607,19 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   .hdr-row .hv{font-family:var(--mono);color:var(--ink);word-break:break-all}
 
   /* ══ URL check ══════════════════════════════ */
+  .vt-apikey{padding:16px 20px;margin-bottom:14px}
+  .vt-apikey-row{display:flex;align-items:center;gap:10px}
+  .vt-apikey-row .field-key{
+    font-family:var(--label);font-size:9.5px;font-weight:600;letter-spacing:var(--track-wide);
+    text-transform:uppercase;color:var(--ink-faint);flex:none;
+  }
+  .vt-apikey-row input{
+    flex:1;min-width:0;background:var(--bg-sink);border:1px solid var(--line);border-radius:var(--r2);
+    padding:10px 14px;font-family:var(--mono);font-size:13px;color:var(--ink);
+  }
+  .vt-apikey-row input:focus{outline:0;border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-weak)}
+  .vt-apikey-row .btn-ghost{flex:none}
+  .vt-apikey .note{padding:8px 2px 0}
   .vt-summary{display:flex;align-items:center;gap:18px;padding:22px 24px}
   .vt-verdict{
     flex:none; width:66px; height:66px; border-radius:50%; display:flex; align-items:center;
@@ -1510,6 +1523,16 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
     <!-- ══ URL CHECK GÖRÜNÜMÜ (VirusTotal) ══ -->
     <section class="paper only-urlcheck">
+      <div class="surface vt-apikey" id="vtApiKeyPanel">
+        <div class="vt-apikey-row">
+          <span class="field-key">VT API KEY</span>
+          <input id="vtApiKey" type="password" spellcheck="false" autocomplete="off"
+                 placeholder="Kendi VirusTotal API anahtarınız" aria-label="VirusTotal API key">
+          <button class="btn-ghost" id="btnVtKeySave">Kaydet</button>
+          <button class="btn-ghost" id="btnVtActivate">Aktive Et</button>
+        </div>
+        <p class="note" id="vtKeyNote" lang="tr">—</p>
+      </div>
       <div class="surface vt-summary" id="vtSummaryPanel">
         <div class="vt-verdict" id="vtVerdict">—</div>
         <div class="vt-summary-text">
@@ -1535,7 +1558,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
       <p class="note" id="vtNote" lang="tr">
         Kaynak: <b>VirusTotal</b> — birden fazla güvenlik motorunun bu URL için verdiği ortak karar. Palo Alto'nun kendi kategorizasyonu değildir,
-        ama zararlı/şüpheli olup olmadığı konusunda hızlı bir fikir verir. Anahtar ajanda ayarlı değilse burada bir uyarı göreceksiniz.
+        ama zararlı/şüpheli olup olmadığı konusunda hızlı bir fikir verir. Sorgu yapabilmek için yukarıya kendi VirusTotal API anahtarınızı eklemeniz gerekir.
       </p>
     </section>
 
@@ -3322,6 +3345,40 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   };
   const vtlog = $("vtlog");
 
+  /* ── VirusTotal API key (kullanıcının kendi anahtarı) ─── */
+  const VT_KEY_STORAGE = "nc-vt-key";
+  const VT_APIKEY_URL = "https://www.virustotal.com/gui/my-apikey";
+  const vtApiKeyInput = $("vtApiKey"), btnVtKeySave = $("btnVtKeySave"), btnVtActivate = $("btnVtActivate"), vtKeyNote = $("vtKeyNote");
+
+  function getVtKey() {
+    try { return (localStorage.getItem(VT_KEY_STORAGE) || "").trim(); } catch { return ""; }
+  }
+  function refreshVtKeyNote() {
+    const k = getVtKey();
+    vtApiKeyInput.value = k;
+    vtKeyNote.textContent = k
+      ? "Anahtar kayıtlı — sorgular kendi VirusTotal hesabınız üzerinden yapılır."
+      : "Anahtar girilmedi — sorgu yapamazsınız. 'Aktive Et' ile ücretsiz anahtar alıp buraya yapıştırın.";
+  }
+  refreshVtKeyNote();
+
+  btnVtKeySave.addEventListener("click", () => {
+    const v = vtApiKeyInput.value.trim();
+    try { localStorage.setItem(VT_KEY_STORAGE, v); } catch { /* yok */ }
+    refreshVtKeyNote();
+  });
+  vtApiKeyInput.addEventListener("keydown", e => { if (e.key === "Enter") btnVtKeySave.click(); });
+
+  btnVtActivate.addEventListener("click", () => {
+    alert(
+      "VirusTotal API anahtarı almak için yönlendiriliyorsunuz.\n\n" +
+      "1) Giriş yapın (hesabınız yoksa ücretsiz oluşturun)\n" +
+      "2) Profil menüsünden \"API Key\" sekmesine gidin\n" +
+      "3) Anahtarı kopyalayıp bu ekrandaki kutuya yapıştırıp Kaydet'e basın"
+    );
+    window.open(VT_APIKEY_URL, "_blank");
+  });
+
   function setVtButton(m) {
     btnVt.dataset.mode = m;
     vtLabel.textContent = m === "busy" ? "Checking" : "Check";
@@ -3353,7 +3410,11 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     const w = timed(20000);
     let r;
     try {
-      const resp = await fetch(`${agentBase}/api/vtcheck?url=${encodeURIComponent(url)}${key()}`, { cache: "no-store", signal: w.signal });
+      const vtKey = getVtKey();
+      const resp = await fetch(`${agentBase}/api/vtcheck?url=${encodeURIComponent(url)}${key()}`, {
+        cache: "no-store", signal: w.signal,
+        headers: vtKey ? { "X-VT-Key": vtKey } : {},
+      });
       r = await resp.json();
     } catch { r = { ok: false, error: "agent unreachable" }; }
     finally { clearTimeout(w.done); }
