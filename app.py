@@ -117,6 +117,9 @@ def main():
         proc = start_agent(port)
         wait_ready(port)
 
+    # varsayilan olarak kapali - yoksa "Export" (CSV indirme) sessizce iptal edilir
+    webview.settings["ALLOW_DOWNLOADS"] = True
+
     url = "http://127.0.0.1:%d/?platform=app" % port
     icon_path = os.path.join(HERE, "network-console-icon.ico")
     # Kenar cubugu 232px yer kapliyor; varsayilan pencere ona gore genis.

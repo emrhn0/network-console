@@ -106,7 +106,7 @@ PING_SWEEP_POOL = 16   # sadece belgeleme amacli - gercek havuz tarayicida (JS)
 # Uygulama surumu. Arayuz bunu /api/health'ten okuyup gosterir, boylece
 # surum tek yerde tanimli kalir. setup.py ve macos/install.sh ile ayni
 # olmali; CI her etiketde ucunun de etiketle esledigini dogrular.
-APP_VERSION = "1.5.3"
+APP_VERSION = "1.5.4"
 
 PROBE_PATHS = ("/api/health", "/api/ping", "/api/tcp", "/api/resolve",
                "/api/traceroute", "/api/dns", "/api/cert", "/api/http", "/api/vtcheck")
