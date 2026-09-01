@@ -1252,6 +1252,8 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
         <button class="btn-primary" id="btnVt" data-mode="idle">
           <span class="glyph"></span><span id="vtLabel">Check</span>
         </button>
+        <button class="btn-ghost" id="btnVtImport" type="button" title="Import a .txt file (one URL per line)">İçe Aktar</button>
+        <input type="file" id="vtImportFile" accept=".txt,text/plain" hidden>
       </div>
     </header>
 
@@ -1566,12 +1568,24 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       <div class="vt-cats" id="vtCats"></div>
 
       <div class="readouts" id="vtReadouts">
+        <div class="cell surface" style="grid-column:1/-1"><span class="cell-key">URL</span><span class="cell-val" id="vtUrlResult" style="font-size:12px;word-break:break-all">—</span></div>
         <div class="cell surface"><span class="cell-key">Malicious</span><span class="cell-val" id="vtMalicious">—</span></div>
         <div class="cell surface"><span class="cell-key">Suspicious</span><span class="cell-val" id="vtSuspicious">—</span></div>
         <div class="cell surface"><span class="cell-key">Harmless</span><span class="cell-val" id="vtHarmless">—</span></div>
         <div class="cell surface"><span class="cell-key">Undetected</span><span class="cell-val" id="vtUndetected">—</span></div>
         <div class="cell surface"><span class="cell-key">Reputation</span><span class="cell-val" id="vtReputation">—</span></div>
         <div class="cell surface"><span class="cell-key">Last analysis</span><span class="cell-val" id="vtLastAnalysis" style="font-size:13px">—</span></div>
+      </div>
+
+      <p class="note" id="vtBulkProgress" hidden lang="tr"></p>
+      <div class="ports surface" id="vtBulkPanel" hidden>
+        <div class="ports-head">
+          <span class="ports-title" lang="tr">Toplu Tarama Sonuçları</span>
+          <button class="btn-ghost" id="btnVtBulkClear" type="button" lang="tr">Temizle</button>
+        </div>
+        <div class="ports-body" id="vtBulkRows">
+          <div class="empty-state" id="vtBulkEmpty"></div>
+        </div>
       </div>
 
       <div class="log-panel surface">
@@ -3715,6 +3729,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     vtVerdict.textContent = "…"; vtVerdict.dataset.tone = "";
     vtCats.innerHTML = "";
     Object.values(vtCounts).forEach(el => el.textContent = "—");
+    $("vtUrlResult").textContent = "—";
     push(vtlog, "sys", "Query: " + url, clock());
 
     const w = timed(20000);
@@ -3739,6 +3754,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       return;
     }
 
+    $("vtUrlResult").textContent = r.final_url || url;
     const mal = r.malicious || 0, sus = r.suspicious || 0, harm = r.harmless || 0, und = r.undetected || 0;
     vtCounts.malicious.textContent = mal;
     vtCounts.suspicious.textContent = sus;
@@ -3770,6 +3786,93 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   btnVt.addEventListener("click", runVtCheck);
   vtUrl.addEventListener("keydown", e => { if (e.key === "Enter") runVtCheck(); });
   vtUrl.addEventListener("focus", () => vtUrl.select());
+
+  /* ── toplu URL taramasi (.txt ice aktar) ─── */
+  const btnVtImport = $("btnVtImport"), vtImportFile = $("vtImportFile");
+  const vtBulkProgress = $("vtBulkProgress"), vtBulkPanel = $("vtBulkPanel"), vtBulkRows = $("vtBulkRows"), btnVtBulkClear = $("btnVtBulkClear");
+  let vtBulkToken = 0;
+
+  function vtNormalize(u) {
+    u = u.trim();
+    if (!u || u.startsWith("#")) return null;
+    if (!/^https?:\/\//i.test(u)) u = "http://" + u;
+    return u;
+  }
+  async function vtCheckOne(url) {
+    const vtKey = getVtKey();
+    const w = timed(20000);
+    try {
+      const resp = await fetch(`${agentBase}/api/vtcheck?url=${encodeURIComponent(url)}${key()}`, {
+        cache: "no-store", signal: w.signal,
+        headers: vtKey ? { "X-VT-Key": vtKey } : {},
+      });
+      return await resp.json();
+    } catch { return { ok: false, error: "agent unreachable" }; }
+    finally { clearTimeout(w.done); }
+  }
+  async function runVtBulk(urls) {
+    if (!getVtKey()) {
+      vtBulkProgress.hidden = false;
+      vtBulkProgress.textContent = "VirusTotal anahtarı yok — Ayarlar'dan ekleyin.";
+      return;
+    }
+    if (!agentBase) {
+      const found = await detectAgent(false);
+      if (!found) { setStatus("urlcheck", "down", "No agent"); return; }
+    }
+    vtBulkToken++; const tk = vtBulkToken;
+    vtBulkPanel.hidden = false; vtBulkProgress.hidden = false;
+    vtBulkRows.innerHTML = "";
+    let mal = 0, sus = 0, done = 0;
+    const total = urls.length;
+    push(vtlog, "sys", "Toplu tarama: " + total + " URL", clock());
+    for (const raw of urls) {
+      if (tk !== vtBulkToken) return;
+      const url = vtNormalize(raw);
+      done++;
+      if (!url) continue;
+      const r = await vtCheckOne(url);
+      if (tk !== vtBulkToken) return;
+      const el = document.createElement("div"); el.className = "sweep-row";
+      el.innerHTML = '<span class="swip"></span><span></span><span class="swttl"></span><span></span>';
+      el.children[0].textContent = url;
+      if (!r.ok) {
+        el.children[1].textContent = "Hata"; el.children[2].textContent = r.error || "";
+        push(vtlog, "err", url + " → hata", r.error || "");
+      } else {
+        const m = r.malicious || 0, s = r.suspicious || 0, h = r.harmless || 0, u = r.undetected || 0;
+        let label = "Temiz";
+        if (m > 0) { label = "Zararlı"; mal++; } else if (s > 0) { label = "Şüpheli"; sus++; }
+        el.children[1].textContent = label;
+        el.children[2].textContent = (m + s) + "/" + (m + s + h + u);
+        el.children[3].textContent = r.last_analysis_date || "";
+        push(vtlog, m > 0 ? "err" : s > 0 ? "reset" : "ok", url + " → " + label, (m + s) + "/" + (m + s + h + u));
+      }
+      vtBulkRows.appendChild(el);
+      vtBulkProgress.textContent = done + " / " + total + " taranıyor · " + mal + " zararlı, " + sus + " şüpheli";
+    }
+    if (tk !== vtBulkToken) return;
+    vtBulkProgress.textContent = total + " URL tarandı · " + mal + " zararlı, " + sus + " şüpheli";
+    logHistory("urlcheck", total + " URL toplu tarama · " + mal + " zararlı");
+    setStatus("urlcheck", mal > 0 ? "down" : "live", total + " URL tarandı");
+  }
+  btnVtImport.addEventListener("click", () => vtImportFile.click());
+  vtImportFile.addEventListener("change", () => {
+    const file = vtImportFile.files && vtImportFile.files[0];
+    vtImportFile.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const urls = String(reader.result).split(/\r?\n/).map(s => s.trim()).filter(s => s && !s.startsWith("#"));
+      if (urls.length) runVtBulk(urls);
+    };
+    reader.readAsText(file);
+  });
+  btnVtBulkClear.addEventListener("click", () => {
+    vtBulkToken++;
+    vtBulkPanel.hidden = true; vtBulkProgress.hidden = true;
+    vtBulkRows.innerHTML = "";
+  });
 
   /* ── olaylar ─────────────────────────────── */
   document.querySelectorAll("[data-go]").forEach(t => t.addEventListener("click", e => { e.preventDefault(); go(t.dataset.go); }));
