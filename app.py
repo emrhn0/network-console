@@ -42,15 +42,23 @@ def probe_agent(port, timeout=0.6):
         return False
 
 
-def port_free(port):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.bind(("127.0.0.1", port))
-        return True
-    except OSError:
-        return False
-    finally:
-        s.close()
+def port_free(port, retries=0, delay=0.3):
+    # Guncelleme sirasinda eski surum az once kapatilmis olabilir; Windows
+    # soketi bir sure TIME_WAIT'te tutar. Tercih edilen port icin kisa bir
+    # sure yeniden denemek, gereksiz yere farklı bir porta (ve dolayisiyla
+    # tarayicinin porta bagli localStorage'inda farklı bir kokene) dusmeyi
+    # onler.
+    for attempt in range(retries + 1):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.bind(("127.0.0.1", port))
+            return True
+        except OSError:
+            if attempt < retries:
+                time.sleep(delay)
+        finally:
+            s.close()
+    return False
 
 
 def port_file():
@@ -83,7 +91,7 @@ def pick_port():
     for port in PORT_RANGE:
         if probe_agent(port):
             return port, False
-    if preferred and preferred in PORT_RANGE and port_free(preferred):
+    if preferred and preferred in PORT_RANGE and port_free(preferred, retries=8):
         return preferred, True
     for port in PORT_RANGE:
         if port_free(port):
@@ -136,6 +144,24 @@ class Api:
             start_agent(self.port)
             wait_ready(self.port, timeout=8)
         return {"running": probe_agent(self.port)}
+
+    # VT anahtari icin ikinci bir kopya: tarayicinin localStorage'i porta
+    # (kokene) bagli oldugu icin port kayarsa anahtar "kaybolur". Bu dosya
+    # port'tan bagimsiz - sayfa acilista burayi da kontrol eder.
+    def get_vt_key(self):
+        try:
+            with open(os.path.join(HERE, "user-vt-key.txt"), "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except OSError:
+            return ""
+
+    def set_vt_key(self, value):
+        try:
+            with open(os.path.join(HERE, "user-vt-key.txt"), "w", encoding="utf-8") as f:
+                f.write((value or "").strip())
+        except OSError:
+            pass
+        return {"ok": True}
 
 
 def main():

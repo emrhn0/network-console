@@ -17,7 +17,7 @@ import time
 import winreg
 
 APP_NAME = "Network Console"
-VERSION = "1.5.6"
+VERSION = "1.5.7"
 PUBLISHER = "Network Console"
 INSTALL_DIR = os.path.join(os.environ["LOCALAPPDATA"], "Programs", "NetworkConsole")
 PAYLOAD = ("NetworkConsole.exe", "NetworkConsole-Agent.exe", "ag-konsolu.html", "network-console-icon.ico")
