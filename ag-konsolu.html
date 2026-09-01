@@ -875,6 +875,18 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   }
   .sidebar-theme:hover{background:var(--fill-hover);color:var(--ink);border-color:var(--line-strong)}
   .sidebar-theme svg{flex:none}
+
+  .sidebar-settings-link{
+    display:flex; align-items:center; gap:11px; width:100%; padding:9px 10px;
+    margin-top:2px; border-radius:var(--r1); text-decoration:none; cursor:pointer;
+    color:var(--ink-faint); border:1px solid transparent; font-family:var(--label);
+    font-size:12px; font-weight:500; letter-spacing:.01em;
+    transition:background .16s ease,color .16s ease;
+  }
+  .sidebar-settings-link svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none;opacity:.8}
+  .sidebar-settings-link:hover{background:var(--fill-hover);color:var(--ink)}
+  .sidebar-settings-link[aria-current="true"]{background:var(--accent-weak);color:var(--ink);border-color:var(--accent-line)}
+  .sidebar-settings-link[aria-current="true"] svg{opacity:1;color:var(--accent)}
   :root[data-platform="app"] .theme-icon-sun,
   :root[data-platform="app"] .theme-icon-moon{display:none}
   :root[data-platform="app"]:not([data-theme="light"]) .sidebar-theme .theme-icon-sun{display:block}
@@ -1012,22 +1024,26 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       <img src="data:image/png;base64,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" alt="Network Console" width="36" height="36">
       <span class="sb-text">
         <span class="sb-name">Network Console</span>
-        <span class="sb-sub">App</span>
+        <span class="sb-sub" id="sbSub">App</span>
       </span>
     </a>
     <div class="sidebar-tabs" id="sidebarTabs"></div>
     <div class="sidebar-foot">
       <div class="sidebar-version" id="sbVersion"></div>
       <div class="agent-card">
-        <div class="agent-row">Agent <b id="sbAgent" data-tone="off">searching…</b></div>
-        <div class="agent-row">Method <b id="sbMode">—</b></div>
-        <div class="agent-row">Session <b id="sbUptime">0m</b></div>
+        <div class="agent-row"><span id="lblSbAgent">Agent</span> <b id="sbAgent" data-tone="off">searching…</b></div>
+        <div class="agent-row"><span id="lblSbMode">Method</span> <b id="sbMode">—</b></div>
+        <div class="agent-row"><span id="lblSbUptime">Session</span> <b id="sbUptime">0m</b></div>
       </div>
       <button class="sidebar-theme" id="themeToggleApp" type="button" title="Toggle light/dark theme">
         <svg class="theme-icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
         <svg class="theme-icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>
         <span id="themeToggleAppText">Dark</span>
       </button>
+      <a class="sidebar-settings-link" id="sidebarSettingsLink" data-go="settings" href="/settings" title="Settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        <span id="sidebarSettingsText">Settings</span>
+      </a>
     </div>
   </nav>
 
@@ -1041,7 +1057,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     <div class="topbar-divider"></div>
     <button class="menu-btn" id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false">
       <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-      Menu
+      <span id="menuBtnText">Menu</span>
     </button>
     <span class="current-tool" id="currentTool"></span>
     <div class="topbar-spacer"></div>
@@ -1052,38 +1068,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       <button class="btn-ghost" id="btnExport" type="button" title="Export current result as CSV">Export</button>
     </div>
 
-    <nav class="menu-panel" id="menuPanel" hidden aria-label="Tools">
-      <a class="menu-item" data-go="ping" href="/ping">
-        <svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-7 4 14 2.5-7h7"/></svg>Ping
-      </a>
-      <a class="menu-item" data-go="traceroute" href="/trace">
-        <svg viewBox="0 0 24 24"><path d="M4 19 12 12 9 9 20 5"/><circle cx="4" cy="19" r="1.4" fill="currentColor" stroke="none"/><circle cx="20" cy="5" r="1.4" fill="currentColor" stroke="none"/></svg>Trace
-      </a>
-      <a class="menu-item" data-go="telnet" href="/telnet">
-        <svg viewBox="0 0 24 24"><path d="M8 2v5M16 2v5M5 7h14v4a7 7 0 0 1-14 0V7ZM12 18v4"/></svg>Telnet
-      </a>
-      <a class="menu-item" data-go="dns" href="/dns">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>DNS
-      </a>
-      <a class="menu-item" data-go="cert" href="/cert">
-        <svg viewBox="0 0 24 24"><path d="M12 3l7 3.2v5.3c0 5-3 8.4-7 9.5-4-1.1-7-4.5-7-9.5V6.2L12 3Z"/><path d="M8.7 12.2l2.3 2.3 4.3-4.6"/></svg>Certificate
-      </a>
-      <a class="menu-item" data-go="http" href="/http">
-        <svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 10-13h-6l1-7Z"/></svg>HTTP
-      </a>
-      <a class="menu-item" data-go="sweep" href="/sweep">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 12 12 4"/><path d="M12 12 17.5 15.2"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>IP Scan
-      </a>
-      <a class="menu-item" data-go="subnet" href="/subnet">
-        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.2"/></svg>Subnet
-      </a>
-      <a class="menu-item" data-go="urlcheck" href="/urlcheck">
-        <svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="m20 20-4.3-4.3"/></svg>URL Check
-      </a>
-      <a class="menu-item" data-go="settings" href="/settings">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Ayarlar
-      </a>
-    </nav>
+    <nav class="menu-panel" id="menuPanel" hidden aria-label="Tools"></nav>
   </header>
 
   <div class="stage">
@@ -1274,13 +1259,13 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     <!-- ══ KARSILAMA / DASHBOARD ══ -->
     <section class="paper only-dashboard">
       <div class="welcome">
-        <h1>Measure first,<br><em>then decide.</em></h1>
-        <p>Ping, trace, DNS, certificates, HTTP, port sweeps, subnet math and URL reputation —
+        <h1 id="welcomeTitle">Measure first,<br><em>then decide.</em></h1>
+        <p id="welcomeDesc">Ping, trace, DNS, certificates, HTTP, port sweeps, subnet math and URL reputation —
            nine instruments, one console. Measurements leave your machine, not the browser's guess.</p>
         <div class="w-meta">
-          <span><b id="wToolCount">9</b> tools</span>
-          <span>Method <b id="wMode">—</b></span>
-          <span>Agent <b id="wAgent">—</b></span>
+          <span><b id="wToolCount">9</b> <span id="lblWTools">tools</span></span>
+          <span><span id="lblWMode">Method</span> <b id="wMode">—</b></span>
+          <span><span id="lblWAgent">Agent</span> <b id="wAgent">—</b></span>
         </div>
       </div>
 
@@ -1288,7 +1273,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
       <div class="ports surface">
         <div class="ports-head">
-          <span class="ports-title">Recent Activity</span>
+          <span class="ports-title" id="historyTitle">Recent Activity</span>
           <button class="btn-ghost" id="btnClearHistory">Clear</button>
         </div>
         <div class="ports-body" id="historyBody">
@@ -1604,25 +1589,25 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     <!-- ══ GENEL AYARLAR ══ -->
     <section class="paper only-settings">
       <div class="surface settings-block">
-        <p class="settings-block-title">VirusTotal API Key</p>
+        <p class="settings-block-title" id="stVtTitle">VirusTotal API Key</p>
         <div class="settings-row">
           <input id="vtApiKey" type="password" spellcheck="false" autocomplete="off"
                  placeholder="Kendi VirusTotal API anahtarınız" aria-label="VirusTotal API key">
           <button class="btn-ghost" id="btnVtKeySave">Kaydet</button>
           <button class="btn-ghost" id="btnVtKeyClear">Kaldır</button>
           <button class="btn-ghost" id="btnVtActivate">
-            VirusTotal'a Git <svg viewBox="0 0 24 24" width="12" height="12" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-left:2px"><path d="M7 17 17 7M9 7h8v8"/></svg>
+            <span id="btnVtActivateText">VirusTotal'a Git</span> <svg viewBox="0 0 24 24" width="12" height="12" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-left:2px"><path d="M7 17 17 7M9 7h8v8"/></svg>
           </button>
         </div>
-        <p class="note" id="vtKeyNote" lang="tr">—</p>
-        <p class="note" lang="tr">
+        <p class="note" id="vtKeyNote">—</p>
+        <p class="note" id="stVtSteps">
           1) VirusTotal'a giriş yapın (hesabınız yoksa ücretsiz oluşturun) · 2) Profil menüsünden <b>API Key</b> sekmesine gidin ·
           3) Anahtarı kopyalayıp yukarıya yapıştırıp <b>Kaydet</b>'e basın. Anahtar sadece bu bilgisayarda, tarayıcı belleğinde saklanır.
         </p>
       </div>
 
       <div class="surface settings-block">
-        <p class="settings-block-title">Görünüm</p>
+        <p class="settings-block-title" id="stThemeTitle">Görünüm</p>
         <div class="settings-theme-btns">
           <button class="btn-ghost" id="btnThemeDark" type="button" data-active="true">Koyu (Dark)</button>
           <button class="btn-ghost" id="btnThemeLight" type="button" data-active="false">Açık (Light)</button>
@@ -1630,21 +1615,29 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       </div>
 
       <div class="surface settings-block">
-        <p class="settings-block-title">Yerel Ajan</p>
+        <p class="settings-block-title" id="stLangTitle">Dil / Language</p>
+        <div class="settings-theme-btns">
+          <button class="btn-ghost" id="btnLangEn" type="button" data-active="true">English</button>
+          <button class="btn-ghost" id="btnLangTr" type="button" data-active="false">Türkçe</button>
+        </div>
+      </div>
+
+      <div class="surface settings-block">
+        <p class="settings-block-title" id="stAgentTitle">Yerel Ajan</p>
         <div class="agent-status-row">
           <span class="agent-status-text" id="stAgentStatus" data-tone="off"><span class="agent-status-dot"></span><span id="stAgentText">Aranıyor…</span></span>
           <button class="btn-ghost" id="btnAgentStart" type="button" hidden>Ajanı Başlat</button>
         </div>
-        <p class="note" id="stAgentNote" lang="tr">Ölçümlerin (ping, trace, port taraması vb.) çalışması için bu bilgisayarda ajan çalışıyor olmalı.</p>
+        <p class="note" id="stAgentNote">Ölçümlerin (ping, trace, port taraması vb.) çalışması için bu bilgisayarda ajan çalışıyor olmalı.</p>
       </div>
 
       <div class="surface settings-block">
-        <p class="settings-block-title">Hakkında</p>
+        <p class="settings-block-title" id="stAboutTitle">Hakkında</p>
         <div class="about-grid">
-          <div><span class="cell-key">Sürüm</span><span class="cell-val" id="stVersion">—</span></div>
-          <div><span class="cell-key">Ajan makinesi</span><span class="cell-val" id="stHost">—</span></div>
-          <div><span class="cell-key">İşletim sistemi</span><span class="cell-val" id="stOs">—</span></div>
-          <div><span class="cell-key">Ölçüm yöntemi</span><span class="cell-val" id="stMethod">—</span></div>
+          <div><span class="cell-key" id="lblStVersion">Sürüm</span><span class="cell-val" id="stVersion">—</span></div>
+          <div><span class="cell-key" id="lblStHost">Ajan makinesi</span><span class="cell-val" id="stHost">—</span></div>
+          <div><span class="cell-key" id="lblStOs">İşletim sistemi</span><span class="cell-val" id="stOs">—</span></div>
+          <div><span class="cell-key" id="lblStMethod">Ölçüm yöntemi</span><span class="cell-val" id="stMethod">—</span></div>
         </div>
       </div>
     </section>
@@ -1691,13 +1684,125 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
   const $ = id => document.getElementById(id);
 
+  /* ── dil (EN/TR) — sadece kabuk: sidebar/topbar/dashboard/ayarlar.
+     Her aracin kendi sayfasindaki etiket/buton/log metinleri kapsam disi. ── */
+  const LANG_KEY = "nc-lang";
+  const STRINGS = {
+    sbSub: ["App", "Uygulama"], sidebarSettingsText: ["Settings", "Ayarlar"],
+    lblSbAgent: ["Agent", "Ajan"], lblSbMode: ["Method", "Yöntem"], lblSbUptime: ["Session", "Oturum"],
+    themeDark: ["Dark", "Koyu"], themeLight: ["Light", "Açık"],
+    menuBtnText: ["Menu", "Menü"],
+    btnPalette: ["⌘K Search", "⌘K Ara"], btnCopy: ["Copy", "Kopyala"], btnExport: ["Export", "Dışa Aktar"],
+    welcomeTitle: ["Measure first,<br><em>then decide.</em>", "Önce ölç,<br><em>sonra karar ver.</em>"],
+    welcomeDesc: [
+      "Ping, trace, DNS, certificates, HTTP, port sweeps, subnet math and URL reputation — nine instruments, one console. Measurements leave your machine, not the browser's guess.",
+      "Ping, iz sürme, DNS, sertifika, HTTP, port taraması, alt ağ hesabı ve URL itibarı — dokuz araç, tek konsol. Ölçümler tarayıcının tahmininden değil, kendi bilgisayarınızdan çıkar.",
+    ],
+    lblWTools: ["tools", "araç"], lblWMode: ["Method", "Yöntem"], lblWAgent: ["Agent", "Ajan"],
+    historyTitle: ["Recent Activity", "Son Etkinlik"], btnClearHistory: ["Clear", "Temizle"],
+    historyEmptyTitle: ["No activity yet", "Henüz etkinlik yok"],
+    historyEmptySub: ["Use any tool and it will show up here", "Herhangi bir aracı kullanın, burada görünecek"],
+
+    stVtTitle: ["VirusTotal API Key", "VirusTotal API Anahtarı"],
+    vtApiKeyPlaceholder: ["Your own VirusTotal API key", "Kendi VirusTotal API anahtarınız"],
+    btnVtKeySave: ["Save", "Kaydet"], btnVtKeyClear: ["Remove", "Kaldır"],
+    btnVtActivateText: ["Go to VirusTotal", "VirusTotal'a Git"],
+    stVtSteps: [
+      "1) Sign in to VirusTotal (create a free account if you don't have one) · 2) Go to the <b>API Key</b> tab in your profile menu · 3) Copy the key, paste it above and click <b>Save</b>. The key is stored only on this computer, in the browser's local storage.",
+      "1) VirusTotal'a giriş yapın (hesabınız yoksa ücretsiz oluşturun) · 2) Profil menüsünden <b>API Key</b> sekmesine gidin · 3) Anahtarı kopyalayıp yukarıya yapıştırıp <b>Kaydet</b>'e basın. Anahtar sadece bu bilgisayarda, tarayıcı belleğinde saklanır.",
+    ],
+    vtKeyHave: ["Key saved — queries run through your own VirusTotal account.", "Anahtar kayıtlı — sorgular kendi VirusTotal hesabınız üzerinden yapılır."],
+    vtKeyMissing: ["No key set — you can't query yet. Follow the steps below to add your key.", "Anahtar girilmedi — sorgu yapamazsınız. Aşağıdaki adımları izleyip anahtarınızı ekleyin."],
+
+    stThemeTitle: ["Appearance", "Görünüm"],
+    btnThemeDark: ["Dark", "Koyu (Dark)"], btnThemeLight: ["Light", "Açık (Light)"],
+    stLangTitle: ["Language / Dil", "Dil / Language"],
+
+    stAgentTitle: ["Local Agent", "Yerel Ajan"],
+    agentSearching: ["Searching…", "Aranıyor…"], agentStarting: ["Starting…", "Başlatılıyor…"],
+    agentNotFound: ["Not found", "Bulunamadı"], agentRunning: ["Running — ", "Çalışıyor — "],
+    btnAgentStart: ["Start Agent", "Ajanı Başlat"],
+    stAgentNote: [
+      "Measurements (ping, trace, port scan, etc.) need the agent running on this computer.",
+      "Ölçümlerin (ping, trace, port taraması vb.) çalışması için bu bilgisayarda ajan çalışıyor olmalı.",
+    ],
+
+    paletteToggleTheme: ["Toggle theme", "Temayı değiştir"],
+    paletteToggleThemeDesc: ["Switch between light and dark", "Açık ve koyu tema arasında geçiş yap"],
+    paletteRescan: ["Re-scan for agent", "Ajanı yeniden tara"],
+    paletteRescanDesc: ["Look for the local measurement agent again", "Yerel ölçüm ajanını tekrar ara"],
+    paletteDashboard: ["Dashboard", "Panel"],
+    paletteDashboardDesc: ["Back to the overview", "Genel bakışa dön"],
+    paletteNoMatch: ["No match", "Eşleşme yok"],
+
+    stAboutTitle: ["About", "Hakkında"],
+    lblStVersion: ["Version", "Sürüm"], lblStHost: ["Agent machine", "Ajan makinesi"],
+    lblStOs: ["Operating system", "İşletim sistemi"], lblStMethod: ["Measurement method", "Ölçüm yöntemi"],
+  };
+  const TR_TOOLS = {
+    ping: ["Sürekli erişilebilirlik ölçümü"],
+    traceroute: ["İz Sürme", "Adım adım rota ve gecikme (MTR)"],
+    telnet: ["Telnet", "TCP port erişilebilirlik kontrolü"],
+    dns: ["DNS", "İç ve dış DNS kayıtlarını karşılaştır"],
+    cert: ["Sertifika", "TLS sertifika bilgisi ve son kullanma tarihi"],
+    http: ["HTTP", "Durum kodu, yönlendirmeler, başlıklar"],
+    sweep: ["IP Tarama", "CIDR aralığında canlı cihaz bul"],
+    subnet: ["Alt Ağ", "CIDR hesaplama ve VLSM bölme"],
+    urlcheck: ["URL Kontrolü", "VirusTotal ile URL itibar kontrolü"],
+    settings: ["Ayarlar", "VirusTotal anahtarı, tema, dil ve ajan durumu"],
+  };
+  let lang = "en";
+  try { lang = localStorage.getItem(LANG_KEY) === "tr" ? "tr" : "en"; } catch { /* yok */ }
+  const forcedLang = QS.get("lang");
+  if (forcedLang === "tr" || forcedLang === "en") lang = forcedLang;
+  function tt(key) {
+    const e = STRINGS[key];
+    return e ? e[lang === "tr" ? 1 : 0] : key;
+  }
+  function toolName(tool) {
+    const tr = TR_TOOLS[tool.view];
+    if (lang !== "tr" || !tr) return tool.name;
+    return tr.length > 1 ? tr[0] : tool.name;
+  }
+  function toolDesc(tool) {
+    const tr = TR_TOOLS[tool.view];
+    if (lang !== "tr" || !tr) return tool.desc;
+    return tr.length > 1 ? tr[1] : tr[0];
+  }
+  function applyI18n() {
+    document.documentElement.lang = lang;
+    Object.keys(STRINGS).forEach(key => {
+      const el = $(key);
+      if (!el) return;
+      if (STRINGS[key][0].includes("<")) el.innerHTML = tt(key);
+      else el.textContent = tt(key);
+    });
+    const vtInput = $("vtApiKey");
+    if (vtInput) vtInput.placeholder = tt("vtApiKeyPlaceholder");
+    if (typeof paintTheme === "function") paintTheme(theme);
+    if (typeof refreshVtKeyNote === "function") refreshVtKeyNote();
+    if (typeof paintAgentPanels === "function") paintAgentPanels();
+    if (typeof renderNavLists === "function") renderNavLists();
+    if (typeof renderShortcuts === "function") renderShortcuts();
+    if (typeof renderHistory === "function") renderHistory();
+    if (typeof go === "function") { currentToolEl.textContent = TOOL_BY_VIEW[view] ? toolName(TOOL_BY_VIEW[view]) : ""; }
+    const btnEn = $("btnLangEn"), btnTr = $("btnLangTr");
+    if (btnEn) btnEn.dataset.active = String(lang === "en");
+    if (btnTr) btnTr.dataset.active = String(lang === "tr");
+  }
+  function setLang(l) {
+    lang = l === "tr" ? "tr" : "en";
+    try { localStorage.setItem(LANG_KEY, lang); } catch { /* yok */ }
+    applyI18n();
+  }
+
   /* ── tema (koyu/açık) ────────────────────── */
   const themeToggle = $("themeToggle"), themeToggleText = $("themeToggleText"), themeToggleApp = $("themeToggleApp");
   const btnThemeDark = $("btnThemeDark"), btnThemeLight = $("btnThemeLight");
   function paintTheme(t) {
     if (t === "light") document.documentElement.dataset.theme = "light";
     else delete document.documentElement.dataset.theme;
-    const label = t === "light" ? "Light" : "Dark";
+    const label = t === "light" ? tt("themeLight") : tt("themeDark");
     themeToggleText.textContent = label;
     const appLabel = $("themeToggleAppText");
     if (appLabel) appLabel.textContent = label;
@@ -1707,8 +1812,8 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", t === "light" ? "#E6E2D6" : "#08080D");
   }
-  let theme = "dark";
-  try { theme = localStorage.getItem("nc-theme") === "light" ? "light" : "dark"; } catch { /* yok */ }
+  let theme = "light";
+  try { theme = localStorage.getItem("nc-theme") === "dark" ? "dark" : "light"; } catch { /* yok */ }
   // ?theme=light|dark adres cubugundan gelirse kayitli tercihi ezer
   const forcedTheme = QS.get("theme");
   if (forcedTheme === "light" || forcedTheme === "dark") theme = forcedTheme;
@@ -1725,6 +1830,9 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   if (themeToggleApp) themeToggleApp.addEventListener("click", toggleTheme);
   if (btnThemeDark) btnThemeDark.addEventListener("click", () => setTheme("dark"));
   if (btnThemeLight) btnThemeLight.addEventListener("click", () => setTheme("light"));
+  const btnLangEn = $("btnLangEn"), btnLangTr = $("btnLangTr");
+  if (btnLangEn) btnLangEn.addEventListener("click", () => setLang("en"));
+  if (btnLangTr) btnLangTr.addEventListener("click", () => setLang("tr"));
 
   const canvas = $("chart"), ctx = canvas.getContext("2d");
   const panel = $("chartPanel"), emptyEl = $("chartEmpty");
@@ -1783,23 +1891,45 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       icon: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.2"/>' },
     { view: "urlcheck", path: "/urlcheck", name: "URL Check", desc: "URL reputation check via VirusTotal",
       icon: '<circle cx="10" cy="10" r="6.5"/><path d="m20 20-4.3-4.3"/>' },
-    { view: "settings", path: "/settings", name: "Ayarlar", desc: "VirusTotal key, theme and agent status",
+  ];
+  // Ayarlar: numarali arac dizininde (sidebar/menu/dashboard kartlari) DEGIL,
+  // kenar cubugunun altinda ayri bir baglanti olarak yasar - ama routing/palette
+  // acisindan diger araclarla ayni sekilde ele alinir.
+  const EXTRA_VIEWS = [
+    { view: "settings", path: "/settings", name: "Settings", desc: "VirusTotal key, theme, language and agent status",
       icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>' },
   ];
+  const ALL_VIEWS = TOOLS.concat(EXTRA_VIEWS);
   const ROUTES = { "/": "dashboard" };
-  TOOLS.forEach(t => { ROUTES[t.path] = t.view; });
+  ALL_VIEWS.forEach(t => { ROUTES[t.path] = t.view; });
   const VIEW_PATH = { dashboard: "/" };
-  TOOLS.forEach(t => { VIEW_PATH[t.view] = t.path; });
-  const TOOL_BY_VIEW = Object.fromEntries(TOOLS.map(t => [t.view, t]));
+  ALL_VIEWS.forEach(t => { VIEW_PATH[t.view] = t.path; });
+  const TOOL_BY_VIEW = Object.fromEntries(ALL_VIEWS.map(t => [t.view, t]));
   const sidebarTabs = $("sidebarTabs");
-  if (sidebarTabs) {
-    sidebarTabs.innerHTML = TOOLS.map(t =>
-      `<a class="menu-item sidebar-item" data-go="${t.view}" href="${t.path}" title="${t.name}">
-        <svg viewBox="0 0 24 24">${t.icon}</svg><span>${t.name}</span>
-      </a>`).join("");
-    sidebarTabs.querySelectorAll("[data-go]").forEach(el =>
+  const menuPanel2 = $("menuPanel");
+  function bindGo(container) {
+    container.querySelectorAll("[data-go]").forEach(el =>
       el.addEventListener("click", e => { e.preventDefault(); go(el.dataset.go); }));
   }
+  function renderNavLists() {
+    if (sidebarTabs) {
+      sidebarTabs.innerHTML = TOOLS.map(t =>
+        `<a class="menu-item sidebar-item" data-go="${t.view}" href="${t.path}" title="${toolName(t)}">
+          <svg viewBox="0 0 24 24">${t.icon}</svg><span>${toolName(t)}</span>
+        </a>`).join("");
+      bindGo(sidebarTabs);
+    }
+    if (menuPanel2) {
+      menuPanel2.innerHTML = ALL_VIEWS.map(t =>
+        `<a class="menu-item" data-go="${t.view}" href="${t.path}">
+          <svg viewBox="0 0 24 24">${t.icon}</svg>${toolName(t)}
+        </a>`).join("");
+      bindGo(menuPanel2);
+    }
+  }
+  renderNavLists();
+  const sidebarSettingsLink = $("sidebarSettingsLink");
+  if (sidebarSettingsLink) sidebarSettingsLink.addEventListener("click", e => { e.preventDefault(); go("settings"); });
   function routeFromLocation() {
     const p = location.pathname.replace(/\/+$/, "") || "/";
     return ROUTES[p] || "dashboard";
@@ -1832,25 +1962,29 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
   function palCommands() {
     const cmds = TOOLS.map((t, i) => ({
-      label: t.name, desc: t.desc, icon: t.icon,
+      label: toolName(t), desc: toolDesc(t), icon: t.icon,
       hint: IS_APP ? "⌘" + (i + 1) : "",
       run: () => go(t.view),
     }));
     cmds.push({
-      label: "Toggle theme", desc: "Switch between light and dark", hint: "",
+      label: tt("paletteToggleTheme"), desc: tt("paletteToggleThemeDesc"), hint: "",
       icon: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
       run: () => toggleTheme(),
     });
     cmds.push({
-      label: "Re-scan for agent", desc: "Look for the local measurement agent again", hint: "",
+      label: tt("paletteRescan"), desc: tt("paletteRescanDesc"), hint: "",
       icon: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>',
       run: () => detectAgent(true),
     });
     cmds.push({
-      label: "Dashboard", desc: "Back to the overview", hint: "",
+      label: tt("paletteDashboard"), desc: tt("paletteDashboardDesc"), hint: "",
       icon: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.2"/>',
       run: () => go("dashboard"),
     });
+    EXTRA_VIEWS.forEach(t => cmds.push({
+      label: toolName(t), desc: toolDesc(t), icon: t.icon, hint: "",
+      run: () => go(t.view),
+    }));
     return cmds;
   }
   function palRender(q) {
@@ -1869,7 +2003,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       }];
     }
     palIndex = 0;
-    if (!palItems.length) { palList.innerHTML = '<div class="palette-empty">No match</div>'; return; }
+    if (!palItems.length) { palList.innerHTML = `<div class="palette-empty">${tt("paletteNoMatch")}</div>`; return; }
     palList.innerHTML = palItems.map((c, i) =>
       `<div class="palette-item" data-i="${i}" data-active="${i === 0}">
          <svg viewBox="0 0 24 24">${c.icon}</svg>
@@ -2003,11 +2137,10 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   }
   function renderShortcuts() {
     const grid = $("shortcutGrid");
-    if (grid.children.length) return;
     grid.innerHTML = TOOLS.map(t =>
       `<a class="shortcut-card surface" href="${t.path}" data-go="${t.view}">
         <span class="sc-icon"><svg viewBox="0 0 24 24">${t.icon}</svg></span>
-        <span class="sc-body"><span class="sc-name">${t.name}</span><span class="sc-desc">${t.desc}</span></span>
+        <span class="sc-body"><span class="sc-name">${toolName(t)}</span><span class="sc-desc">${toolDesc(t)}</span></span>
       </a>`).join("");
     grid.querySelectorAll("[data-go]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); go(el.dataset.go); }));
   }
@@ -2016,7 +2149,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     let hist = [];
     try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch { /* yok */ }
     if (!hist.length) {
-      body.innerHTML = '<div class="empty-state">No activity yet<span>Use any tool and it will show up here</span></div>';
+      body.innerHTML = `<div class="empty-state">${tt("historyEmptyTitle")}<span>${tt("historyEmptySub")}</span></div>`;
       return;
     }
     body.innerHTML = "";
@@ -2025,7 +2158,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       const row = document.createElement("a");
       row.className = "hist-row"; row.href = t ? t.path : "/";
       row.innerHTML = '<span class="htool"></span><span class="hsum"></span><span class="htime"></span>';
-      row.querySelector(".htool").textContent = t ? t.name : h.view;
+      row.querySelector(".htool").textContent = t ? toolName(t) : h.view;
       row.querySelector(".hsum").textContent = h.summary;
       row.querySelector(".htime").textContent = timeAgo(h.ts);
       row.addEventListener("click", e => { e.preventDefault(); go(h.view); });
@@ -2048,7 +2181,8 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       if (location.pathname !== p) history.pushState({ view: v }, "", p);
     }
     document.querySelectorAll(".menu-item[data-go]").forEach(t => t.setAttribute("aria-current", String(t.dataset.go === v)));
-    currentToolEl.textContent = TOOL_BY_VIEW[v] ? TOOL_BY_VIEW[v].name : "";
+    if (sidebarSettingsLink) sidebarSettingsLink.setAttribute("aria-current", String(v === "settings"));
+    currentToolEl.textContent = TOOL_BY_VIEW[v] ? toolName(TOOL_BY_VIEW[v]) : "";
     eyebrow.textContent = EYEBROW[v] || "";
     // editoryal numara: arac dizinindeki sirasi (01..09), dashboard'da yok
     const idx = TOOLS.findIndex(t => t.view === v);
@@ -2140,7 +2274,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     const stStatus = $("stAgentStatus");
     if (stStatus) {
       stStatus.dataset.tone = connected ? "ok" : "off";
-      $("stAgentText").textContent = connected ? "Çalışıyor — " + who : "Bulunamadı";
+      $("stAgentText").textContent = connected ? tt("agentRunning") + who : tt("agentNotFound");
       $("stVersion").textContent = (agentInfo && agentInfo.app_version) ? "v" + agentInfo.app_version : "—";
       $("stHost").textContent = who;
       $("stOs").textContent = (agentInfo && agentInfo.os) || "—";
@@ -2154,14 +2288,13 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   if (btnAgentStart) {
     btnAgentStart.addEventListener("click", async () => {
       btnAgentStart.disabled = true;
-      const prevText = btnAgentStart.textContent;
-      btnAgentStart.textContent = "Başlatılıyor…";
+      btnAgentStart.textContent = tt("agentStarting");
       try {
         await window.pywebview.api.start_agent();
       } catch { /* asagida yine de yeniden denenir */ }
       await detectAgent(true);
       btnAgentStart.disabled = false;
-      btnAgentStart.textContent = prevText;
+      btnAgentStart.textContent = tt("btnAgentStart");
     });
   }
   window.addEventListener("pywebviewready", () => paintAgentPanels());
@@ -3538,9 +3671,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   function refreshVtKeyNote() {
     const k = getVtKey();
     vtApiKeyInput.value = k;
-    vtKeyNote.textContent = k
-      ? "Anahtar kayıtlı — sorgular kendi VirusTotal hesabınız üzerinden yapılır."
-      : "Anahtar girilmedi — sorgu yapamazsınız. Aşağıdaki adımları izleyip anahtarınızı ekleyin.";
+    vtKeyNote.textContent = k ? tt("vtKeyHave") : tt("vtKeyMissing");
     vtNudge.hidden = !!k;
   }
   refreshVtKeyNote();
@@ -3675,6 +3806,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   window.addEventListener("resize", () => { if (view === "ping") draw(); });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && view === "ping") draw(); });
 
+  applyI18n();
   buildChips();
   refresh(); draw();
   setButton("idle"); setTcpButton("idle");
