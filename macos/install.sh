@@ -128,7 +128,7 @@ cat > "$CONTENTS/Info.plist" <<PLIST
   <key>CFBundleDisplayName</key><string>Network Console</string>
   <key>CFBundleIdentifier</key><string>com.networkconsole.app</string>
   <key>CFBundleVersion</key><string>1.5.0</string>
-  <key>CFBundleShortVersionString</key><string>1.5.5</string>
+  <key>CFBundleShortVersionString</key><string>1.5.6</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleExecutable</key><string>NetworkConsole</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>

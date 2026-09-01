@@ -53,10 +53,38 @@ def port_free(port):
         s.close()
 
 
+def port_file():
+    return os.path.join(HERE, "port.txt")
+
+
+def load_preferred_port():
+    try:
+        with open(port_file(), "r", encoding="utf-8") as f:
+            return int(f.read().strip())
+    except (OSError, ValueError):
+        return None
+
+
+def save_preferred_port(port):
+    try:
+        with open(port_file(), "w", encoding="utf-8") as f:
+            f.write(str(port))
+    except OSError:
+        pass
+
+
 def pick_port():
+    # Onceki calistirmada kullanilan portu once dener - boylece tarayicinin
+    # kaydettigi ayarlar (orn. VirusTotal anahtari, localStorage kokene/porta
+    # bagli oldugu icin) surum guncellemelerinde de ayni adreste kalir.
+    preferred = load_preferred_port()
+    if preferred and probe_agent(preferred):
+        return preferred, False
     for port in PORT_RANGE:
         if probe_agent(port):
             return port, False
+    if preferred and preferred in PORT_RANGE and port_free(preferred):
+        return preferred, True
     for port in PORT_RANGE:
         if port_free(port):
             return port, True
@@ -112,6 +140,7 @@ class Api:
 
 def main():
     port, need_start = pick_port()
+    save_preferred_port(port)
     proc = None
     if need_start:
         proc = start_agent(port)

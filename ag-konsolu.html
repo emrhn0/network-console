@@ -1252,7 +1252,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
         <button class="btn-primary" id="btnVt" data-mode="idle">
           <span class="glyph"></span><span id="vtLabel">Check</span>
         </button>
-        <button class="btn-ghost" id="btnVtImport" type="button" title="Import a .txt file (one URL per line)">İçe Aktar</button>
+        <button class="btn-ghost" id="btnVtImport" type="button" title="Import a .txt file (one URL per line)">Import</button>
         <input type="file" id="vtImportFile" accept=".txt,text/plain" hidden>
       </div>
     </header>
@@ -1569,6 +1569,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
       <div class="readouts" id="vtReadouts">
         <div class="cell surface" style="grid-column:1/-1"><span class="cell-key">URL</span><span class="cell-val" id="vtUrlResult" style="font-size:12px;word-break:break-all">—</span></div>
+        <div class="cell surface"><span class="cell-key">Risk</span><span class="cell-val" id="vtRisk">—</span></div>
         <div class="cell surface"><span class="cell-key">Malicious</span><span class="cell-val" id="vtMalicious">—</span></div>
         <div class="cell surface"><span class="cell-key">Suspicious</span><span class="cell-val" id="vtSuspicious">—</span></div>
         <div class="cell surface"><span class="cell-key">Harmless</span><span class="cell-val" id="vtHarmless">—</span></div>
@@ -1706,6 +1707,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     themeDark: ["Dark", "Koyu"], themeLight: ["Light", "Açık"],
     menuBtnText: ["Menu", "Menü"],
     btnPalette: ["⌘K Search", "⌘K Ara"], btnCopy: ["Copy", "Kopyala"], btnExport: ["Export", "Dışa Aktar"],
+    btnVtImport: ["Import", "İçe Aktar"],
     welcomeTitle: ["Measure first,<br><em>then decide.</em>", "Önce ölç,<br><em>sonra karar ver.</em>"],
     welcomeDesc: [
       "Ping, trace, DNS, certificates, HTTP, port sweeps, subnet math and URL reputation — nine instruments, one console. Measurements leave your machine, not the browser's guess.",
@@ -3729,7 +3731,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     vtVerdict.textContent = "…"; vtVerdict.dataset.tone = "";
     vtCats.innerHTML = "";
     Object.values(vtCounts).forEach(el => el.textContent = "—");
-    $("vtUrlResult").textContent = "—";
+    $("vtUrlResult").textContent = "—"; $("vtRisk").textContent = "—";
     push(vtlog, "sys", "Query: " + url, clock());
 
     const w = timed(20000);
@@ -3756,6 +3758,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
     $("vtUrlResult").textContent = r.final_url || url;
     const mal = r.malicious || 0, sus = r.suspicious || 0, harm = r.harmless || 0, und = r.undetected || 0;
+    $("vtRisk").textContent = (mal + sus) + "/" + (mal + sus + harm + und);
     vtCounts.malicious.textContent = mal;
     vtCounts.suspicious.textContent = sus;
     vtCounts.harmless.textContent = harm;
