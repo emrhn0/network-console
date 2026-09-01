@@ -518,7 +518,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
   /* ══ gorunum anahtarlama ════════════════════ */
   .only-ping,.only-telnet,.only-traceroute,.only-dns,.only-cert,.only-subnet,
-  .only-sweep,.only-http,.only-urlcheck,.only-dashboard{display:none}
+  .only-sweep,.only-http,.only-urlcheck,.only-dashboard,.only-settings{display:none}
   body[data-view="ping"] .only-ping{display:flex}
   body[data-view="telnet"] .only-telnet{display:flex}
   body[data-view="traceroute"] .only-traceroute{display:flex}
@@ -529,7 +529,8 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   body[data-view="http"] .only-http{display:flex}
   body[data-view="urlcheck"] .only-urlcheck{display:flex}
   body[data-view="dashboard"] .only-dashboard{display:flex}
-  body[data-view="dashboard"] .console{display:none}
+  body[data-view="settings"] .only-settings{display:flex}
+  body[data-view="dashboard"] .console,body[data-view="settings"] .console{display:none}
   .strip.only-ping:empty,.strip.only-telnet:empty{display:none}
 
   :is(button, select, input, a):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -586,6 +587,12 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   .vlsm-row .vcidr{font-weight:700;color:var(--accent)}
 
   /* ══ ag taramasi ════════════════════════════ */
+  .field-hint{
+    margin:8px 0 0;padding:0 4px;font-family:var(--label);font-size:11.5px;
+    color:var(--ink-faint);min-height:14px;
+  }
+  .field-hint[data-tone="error"]{color:var(--alarm);font-weight:600}
+  .field-hint:empty{display:none !important}
   .sweep-row{
     display:grid; grid-template-columns:1fr 70px 70px 1fr; gap:10px; align-items:center;
     padding:9px 10px; border-radius:var(--r1); font-size:12.5px; font-variant-numeric:tabular-nums;
@@ -607,20 +614,47 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   .hdr-row .hv{font-family:var(--mono);color:var(--ink);word-break:break-all}
 
   /* ══ URL check ══════════════════════════════ */
-  .vt-apikey{padding:16px 20px;margin-bottom:14px}
-  .vt-apikey-row{display:flex;align-items:center;gap:10px}
-  .vt-apikey-row .field-key{
-    font-family:var(--label);font-size:9.5px;font-weight:600;letter-spacing:var(--track-wide);
-    text-transform:uppercase;color:var(--ink-faint);flex:none;
+  .vt-nudge{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:13px 18px;margin-bottom:14px;
   }
-  .vt-apikey-row input{
+  .vt-nudge-text{font-family:var(--label);font-size:12px;color:var(--ink-soft);line-height:1.5}
+  .vt-nudge-btn{flex:none;display:inline-flex;align-items:center;gap:6px}
+  .vt-nudge-btn svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .vt-summary{display:flex;align-items:center;gap:18px;padding:22px 24px}
+
+  /* ══ ayarlar ═════════════════════════════════ */
+  .settings-block{padding:20px 22px}
+  .settings-block + .settings-block{margin-top:14px}
+  .settings-block-title{
+    font-family:var(--label);font-size:10px;font-weight:600;letter-spacing:var(--track-wide);
+    text-transform:uppercase;color:var(--ink-faint);margin:0 0 14px;
+  }
+  .settings-row{display:flex;align-items:center;gap:10px}
+  .settings-row + .settings-row{margin-top:10px}
+  .settings-row input{
     flex:1;min-width:0;background:var(--bg-sink);border:1px solid var(--line);border-radius:var(--r2);
     padding:10px 14px;font-family:var(--mono);font-size:13px;color:var(--ink);
   }
-  .vt-apikey-row input:focus{outline:0;border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-weak)}
-  .vt-apikey-row .btn-ghost{flex:none}
-  .vt-apikey .note{padding:8px 2px 0}
-  .vt-summary{display:flex;align-items:center;gap:18px;padding:22px 24px}
+  .settings-row input:focus{outline:0;border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-weak)}
+  .settings-row .btn-ghost{flex:none}
+  .settings-block .note{padding:10px 2px 0}
+  .settings-theme-btns{display:flex;gap:8px}
+  .settings-theme-btns .btn-ghost{flex:1}
+  .settings-theme-btns .btn-ghost[data-active="true"]{
+    background:var(--accent-weak);color:var(--accent);border-color:var(--accent-line);
+  }
+  .agent-status-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .agent-status-text{display:flex;align-items:center;gap:9px;font-family:var(--label);font-size:12.5px;color:var(--ink-soft)}
+  .agent-status-dot{width:8px;height:8px;border-radius:50%;background:var(--ink-ghost);flex:none}
+  .agent-status-text[data-tone="ok"] .agent-status-dot{background:var(--ok)}
+  .agent-status-text[data-tone="off"] .agent-status-dot{background:var(--alarm)}
+  .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+  .about-grid .cell-key{
+    font-family:var(--label);font-size:9.5px;font-weight:600;letter-spacing:var(--track-wide);
+    text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:3px;
+  }
+  .about-grid .cell-val{font-family:var(--mono);font-size:12.5px;color:var(--ink)}
   .vt-verdict{
     flex:none; width:66px; height:66px; border-radius:50%; display:flex; align-items:center;
     justify-content:center; font-family:var(--display); font-weight:600; font-size:22px;
@@ -1046,6 +1080,9 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       <a class="menu-item" data-go="urlcheck" href="/urlcheck">
         <svg viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5"/><path d="m20 20-4.3-4.3"/></svg>URL Check
       </a>
+      <a class="menu-item" data-go="settings" href="/settings">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Ayarlar
+      </a>
     </nav>
   </header>
 
@@ -1198,10 +1235,16 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
           <input id="swCidr" type="text" spellcheck="false" autocomplete="off"
                  placeholder="192.168.1.0/24" aria-label="CIDR range to sweep">
         </div>
+        <div class="field port">
+          <span class="field-key">Port</span>
+          <input id="swPort" type="text" spellcheck="false" autocomplete="off"
+                 placeholder="opsiyonel · örn. 443" aria-label="Optional port to filter by">
+        </div>
         <button class="btn-primary" id="btnSweep" data-mode="idle">
           <span class="glyph"></span><span id="sweepLabel">Scan</span>
         </button>
       </div>
+      <p class="field-hint only-sweep" id="swCidrHint"></p>
 
       <!-- SUBNET CALCULATOR -->
       <div class="dial only-subnet">
@@ -1523,15 +1566,11 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
     <!-- ══ URL CHECK GÖRÜNÜMÜ (VirusTotal) ══ -->
     <section class="paper only-urlcheck">
-      <div class="surface vt-apikey" id="vtApiKeyPanel">
-        <div class="vt-apikey-row">
-          <span class="field-key">VT API KEY</span>
-          <input id="vtApiKey" type="password" spellcheck="false" autocomplete="off"
-                 placeholder="Kendi VirusTotal API anahtarınız" aria-label="VirusTotal API key">
-          <button class="btn-ghost" id="btnVtKeySave">Kaydet</button>
-          <button class="btn-ghost" id="btnVtActivate">Aktive Et</button>
-        </div>
-        <p class="note" id="vtKeyNote" lang="tr">—</p>
+      <div class="surface vt-nudge" id="vtNudge" hidden>
+        <span class="vt-nudge-text" lang="tr">Sorgu yapabilmek için kendi VirusTotal API anahtarınızı Ayarlar'a eklemeniz gerekir.</span>
+        <button class="btn-ghost vt-nudge-btn" id="btnVtGo" type="button">
+          VirusTotal'a Git <svg viewBox="0 0 24 24" width="12" height="12"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        </button>
       </div>
       <div class="surface vt-summary" id="vtSummaryPanel">
         <div class="vt-verdict" id="vtVerdict">—</div>
@@ -1558,8 +1597,56 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
       <p class="note" id="vtNote" lang="tr">
         Kaynak: <b>VirusTotal</b> — birden fazla güvenlik motorunun bu URL için verdiği ortak karar. Palo Alto'nun kendi kategorizasyonu değildir,
-        ama zararlı/şüpheli olup olmadığı konusunda hızlı bir fikir verir. Sorgu yapabilmek için yukarıya kendi VirusTotal API anahtarınızı eklemeniz gerekir.
+        ama zararlı/şüpheli olup olmadığı konusunda hızlı bir fikir verir. Sorgu yapabilmek için Ayarlar'dan kendi VirusTotal API anahtarınızı eklemeniz gerekir.
       </p>
+    </section>
+
+    <!-- ══ GENEL AYARLAR ══ -->
+    <section class="paper only-settings">
+      <div class="surface settings-block">
+        <p class="settings-block-title">VirusTotal API Key</p>
+        <div class="settings-row">
+          <input id="vtApiKey" type="password" spellcheck="false" autocomplete="off"
+                 placeholder="Kendi VirusTotal API anahtarınız" aria-label="VirusTotal API key">
+          <button class="btn-ghost" id="btnVtKeySave">Kaydet</button>
+          <button class="btn-ghost" id="btnVtKeyClear">Kaldır</button>
+          <button class="btn-ghost" id="btnVtActivate">
+            VirusTotal'a Git <svg viewBox="0 0 24 24" width="12" height="12" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-left:2px"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          </button>
+        </div>
+        <p class="note" id="vtKeyNote" lang="tr">—</p>
+        <p class="note" lang="tr">
+          1) VirusTotal'a giriş yapın (hesabınız yoksa ücretsiz oluşturun) · 2) Profil menüsünden <b>API Key</b> sekmesine gidin ·
+          3) Anahtarı kopyalayıp yukarıya yapıştırıp <b>Kaydet</b>'e basın. Anahtar sadece bu bilgisayarda, tarayıcı belleğinde saklanır.
+        </p>
+      </div>
+
+      <div class="surface settings-block">
+        <p class="settings-block-title">Görünüm</p>
+        <div class="settings-theme-btns">
+          <button class="btn-ghost" id="btnThemeDark" type="button" data-active="true">Koyu (Dark)</button>
+          <button class="btn-ghost" id="btnThemeLight" type="button" data-active="false">Açık (Light)</button>
+        </div>
+      </div>
+
+      <div class="surface settings-block">
+        <p class="settings-block-title">Yerel Ajan</p>
+        <div class="agent-status-row">
+          <span class="agent-status-text" id="stAgentStatus" data-tone="off"><span class="agent-status-dot"></span><span id="stAgentText">Aranıyor…</span></span>
+          <button class="btn-ghost" id="btnAgentStart" type="button" hidden>Ajanı Başlat</button>
+        </div>
+        <p class="note" id="stAgentNote" lang="tr">Ölçümlerin (ping, trace, port taraması vb.) çalışması için bu bilgisayarda ajan çalışıyor olmalı.</p>
+      </div>
+
+      <div class="surface settings-block">
+        <p class="settings-block-title">Hakkında</p>
+        <div class="about-grid">
+          <div><span class="cell-key">Sürüm</span><span class="cell-val" id="stVersion">—</span></div>
+          <div><span class="cell-key">Ajan makinesi</span><span class="cell-val" id="stHost">—</span></div>
+          <div><span class="cell-key">İşletim sistemi</span><span class="cell-val" id="stOs">—</span></div>
+          <div><span class="cell-key">Ölçüm yöntemi</span><span class="cell-val" id="stMethod">—</span></div>
+        </div>
+      </div>
     </section>
 
   </div>
@@ -1606,6 +1693,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
 
   /* ── tema (koyu/açık) ────────────────────── */
   const themeToggle = $("themeToggle"), themeToggleText = $("themeToggleText"), themeToggleApp = $("themeToggleApp");
+  const btnThemeDark = $("btnThemeDark"), btnThemeLight = $("btnThemeLight");
   function paintTheme(t) {
     if (t === "light") document.documentElement.dataset.theme = "light";
     else delete document.documentElement.dataset.theme;
@@ -1613,6 +1701,8 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     themeToggleText.textContent = label;
     const appLabel = $("themeToggleAppText");
     if (appLabel) appLabel.textContent = label;
+    if (btnThemeDark) btnThemeDark.dataset.active = String(t !== "light");
+    if (btnThemeLight) btnThemeLight.dataset.active = String(t === "light");
     // tarayici kabugu (adres cubugu / basligi) da temaya uysun
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", t === "light" ? "#E6E2D6" : "#08080D");
@@ -1623,14 +1713,18 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   const forcedTheme = QS.get("theme");
   if (forcedTheme === "light" || forcedTheme === "dark") theme = forcedTheme;
   paintTheme(theme);
-  function toggleTheme() {
-    theme = theme === "light" ? "dark" : "light";
+  function setTheme(t) {
+    if (t !== "light" && t !== "dark") return;
+    theme = t;
     paintTheme(theme);
     try { localStorage.setItem("nc-theme", theme); } catch { /* yok */ }
     if (view === "ping") requestAnimationFrame(draw);
   }
+  function toggleTheme() { setTheme(theme === "light" ? "dark" : "light"); }
   themeToggle.addEventListener("click", toggleTheme);
   if (themeToggleApp) themeToggleApp.addEventListener("click", toggleTheme);
+  if (btnThemeDark) btnThemeDark.addEventListener("click", () => setTheme("dark"));
+  if (btnThemeLight) btnThemeLight.addEventListener("click", () => setTheme("light"));
 
   const canvas = $("chart"), ctx = canvas.getContext("2d");
   const panel = $("chartPanel"), emptyEl = $("chartEmpty");
@@ -1662,12 +1756,13 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     traceroute: { kind: "idle", text: "Ready" }, dns: { kind: "idle", text: "Ready" },
     cert: { kind: "idle", text: "Ready" }, http: { kind: "idle", text: "Ready" },
     sweep: { kind: "idle", text: "Ready" }, subnet: { kind: "idle", text: "Ready" },
-    urlcheck: { kind: "idle", text: "Ready" },
+    urlcheck: { kind: "idle", text: "Ready" }, settings: { kind: "idle", text: "Ready" },
   };
   const EYEBROW = {
     ping: "Reachability log", telnet: "Port access check", traceroute: "Trace (MTR style)",
     dns: "DNS lookup — internal vs external", cert: "Certificate inspector", http: "HTTP check",
     sweep: "IP Scan", subnet: "Subnet calculator (VLSM)", urlcheck: "URL Check — VirusTotal",
+    settings: "General settings",
   };
   const TOOLS = [
     { view: "ping", path: "/ping", name: "Ping", desc: "Continuous reachability measurement",
@@ -1688,6 +1783,8 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
       icon: '<rect x="3" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.2"/>' },
     { view: "urlcheck", path: "/urlcheck", name: "URL Check", desc: "URL reputation check via VirusTotal",
       icon: '<circle cx="10" cy="10" r="6.5"/><path d="m20 20-4.3-4.3"/>' },
+    { view: "settings", path: "/settings", name: "Ayarlar", desc: "VirusTotal key, theme and agent status",
+      icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>' },
   ];
   const ROUTES = { "/": "dashboard" };
   TOOLS.forEach(t => { ROUTES[t.path] = t.view; });
@@ -1963,6 +2060,7 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     if (v === "traceroute" && !$("trHost").value && target) $("trHost").value = target.host;
     if (v === "sweep" && !$("swCidr").value && target && target.isV4) $("swCidr").value = target.host + "/24";
     if (v === "dashboard") renderDashboard();
+    if (v === "settings") { refreshVtKeyNote(); detectAgent(false).then(paintAgentPanels); }
   }
   window.addEventListener("popstate", () => go(routeFromLocation(), { push: false }));
 
@@ -2017,7 +2115,8 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     paintAgentPanels();
   }
 
-  /* ── ajan paneli (app kenar cubugu + dashboard) ── */
+  /* ── ajan paneli (app kenar cubugu + dashboard + ayarlar) ── */
+  const btnAgentStart = $("btnAgentStart");
   function paintAgentPanels() {
     const connected = !!agentBase;
     const who = (agentInfo && agentInfo.host) ? agentInfo.host : (connected ? "local agent" : "not found");
@@ -2036,7 +2135,36 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     const ver = $("sbVersion");
     if (ver) ver.textContent = (agentInfo && agentInfo.app_version)
       ? "v" + agentInfo.app_version : "";
+
+    // Ayarlar sekmesi
+    const stStatus = $("stAgentStatus");
+    if (stStatus) {
+      stStatus.dataset.tone = connected ? "ok" : "off";
+      $("stAgentText").textContent = connected ? "Çalışıyor — " + who : "Bulunamadı";
+      $("stVersion").textContent = (agentInfo && agentInfo.app_version) ? "v" + agentInfo.app_version : "—";
+      $("stHost").textContent = who;
+      $("stOs").textContent = (agentInfo && agentInfo.os) || "—";
+      $("stMethod").textContent = method;
+      if (btnAgentStart) {
+        const canStart = IS_APP && window.pywebview && window.pywebview.api && window.pywebview.api.start_agent;
+        btnAgentStart.hidden = connected || !canStart;
+      }
+    }
   }
+  if (btnAgentStart) {
+    btnAgentStart.addEventListener("click", async () => {
+      btnAgentStart.disabled = true;
+      const prevText = btnAgentStart.textContent;
+      btnAgentStart.textContent = "Başlatılıyor…";
+      try {
+        await window.pywebview.api.start_agent();
+      } catch { /* asagida yine de yeniden denenir */ }
+      await detectAgent(true);
+      btnAgentStart.disabled = false;
+      btnAgentStart.textContent = prevText;
+    });
+  }
+  window.addEventListener("pywebviewready", () => paintAgentPanels());
   const SESSION_START = Date.now();
   setInterval(() => {
     const el = $("sbUptime"); if (!el) return;
@@ -3155,8 +3283,9 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     return prefix < 0 ? null : prefix;
   }
 
-  /* ══ AG TARAMASI (ping sweep) ═════════════ */
-  const swCidr = $("swCidr"), btnSweep = $("btnSweep"), sweepLabel = $("sweepLabel");
+  /* ══ AG TARAMASI (ping/port sweep) ═════════ */
+  const swCidr = $("swCidr"), swPort = $("swPort"), swCidrHint = $("swCidrHint");
+  const btnSweep = $("btnSweep"), sweepLabel = $("sweepLabel");
   const swRows = $("swRows"), swlog = $("swlog"), btnSweepReset = $("btnSweepReset");
   const swCount = { alive: $("swAlive"), dead: $("swDead"), total: $("swTotal"), progress: $("swProgress") };
   const SWEEP_POOL = 16, SWEEP_TIMEOUT = 600, SWEEP_MAX_HOSTS = 4096, SWEEP_WARN_HOSTS = 1024;
@@ -3176,6 +3305,32 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     swCount.alive.textContent = st.alive; swCount.dead.textContent = st.dead; swCount.total.textContent = st.total;
     swCount.progress.textContent = st.total ? Math.round((st.done / st.total) * 100) + "%" : "—";
   }
+  function setSweepHint(text, tone) {
+    swCidrHint.textContent = text || "";
+    if (tone) swCidrHint.dataset.tone = tone; else delete swCidrHint.dataset.tone;
+  }
+  function parseSweepPort(raw) {
+    const s = (raw || "").trim();
+    if (!s) return { port: null };
+    if (!/^\d{1,5}$/.test(s)) return { error: "Geçersiz port (1-65535)" };
+    const p = parseInt(s, 10);
+    if (p < 1 || p > 65535) return { error: "Geçersiz port (1-65535)" };
+    return { port: p };
+  }
+  function validateSweepInputs(showAlways) {
+    const raw = swCidr.value.trim();
+    if (!raw) { if (showAlways) setSweepHint(""); return null; }
+    const c = parseCidr(raw);
+    if (c.error) { setSweepHint(c.error, "error"); return null; }
+    if (c.size > SWEEP_MAX_HOSTS) { setSweepHint("Çok geniş — en fazla /20 (4096 adres) girebilirsiniz", "error"); return null; }
+    const p = parseSweepPort(swPort.value);
+    if (p.error) { setSweepHint(p.error, "error"); return null; }
+    if (c.size > SWEEP_WARN_HOSTS) setSweepHint(c.size + " adres — büyük aralık, taramak zaman alabilir");
+    else setSweepHint("");
+    return { cidr: c, port: p.port };
+  }
+  swCidr.addEventListener("input", () => validateSweepInputs(true));
+  swPort.addEventListener("input", () => validateSweepInputs(true));
 
   async function sweepPing(ip, tk, st) {
     const w = timed(SWEEP_TIMEOUT + 500);
@@ -3199,6 +3354,28 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     finally { clearTimeout(w.done); if (tk === sweepToken) sweepPaintCounts(st); }
   }
 
+  async function sweepPort(ip, port, tk, st) {
+    const w = timed(SWEEP_TIMEOUT + 1500);
+    try {
+      const r = await fetch(`${agentBase}/api/tcp?host=${encodeURIComponent(ip)}&port=${port}&timeout=${SWEEP_TIMEOUT + 1000}${key()}`, { cache: "no-store", signal: w.signal });
+      const j = await r.json();
+      if (tk !== sweepToken) return;
+      st.done++;
+      if (j.ok && j.state === "open") {
+        st.alive++;
+        const el = document.createElement("div"); el.className = "sweep-row";
+        el.innerHTML = '<span class="swip"></span><span></span><span class="swttl"></span><span></span>';
+        el.children[0].textContent = ip;
+        el.children[1].textContent = nf(j.ms, j.ms < 10 ? 1 : 0) + " ms";
+        el.children[2].textContent = "PORT " + port;
+        el.children[3].textContent = "open";
+        swRows.appendChild(el);
+        push(swlog, "ok", ip + ":" + port + " open", nf(j.ms, 1) + " ms");
+      } else st.dead++;
+    } catch { if (tk === sweepToken) { st.dead++; st.done++; } }
+    finally { clearTimeout(w.done); if (tk === sweepToken) sweepPaintCounts(st); }
+  }
+
   async function startSweep() {
     if (!agentBase) {
       const found = await detectAgent(false);
@@ -3208,27 +3385,27 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
         return;
       }
     }
-    const c = parseCidr(swCidr.value);
-    if (c.error) { setStatus("sweep", "idle", c.error); swCidr.focus(); return; }
-    if (c.size > SWEEP_MAX_HOSTS) { setStatus("sweep", "idle", "Too large — max /20 (4096 addresses)"); return; }
+    const input = validateSweepInputs(true);
+    if (!input) { swCidr.focus(); return; }
+    const { cidr: c, port } = input;
 
     sweepToken++; const tk = sweepToken;
     sweepRunning = true; setSweepButton("running"); setStatus("sweep", "busy", "Scanning");
     swRows.innerHTML = ""; swlog.innerHTML = "";
     const st = { alive: 0, dead: 0, done: 0, total: c.size };
     sweepPaintCounts(st);
-    push(swlog, "sys", "Scan started: " + swCidr.value.trim(),
+    push(swlog, "sys", "Scan started: " + swCidr.value.trim() + (port ? " · port " + port : ""),
       c.size + " addresses" + (c.size > SWEEP_WARN_HOSTS ? " (large range, may take a while)" : ""));
 
     const hosts = [];
     for (let n = c.network; n <= c.broadcast; n++) hosts.push(intToIp(n));
-    await pool(hosts, SWEEP_POOL, ip => sweepPing(ip, tk, st));
+    await pool(hosts, SWEEP_POOL, ip => port ? sweepPort(ip, port, tk, st) : sweepPing(ip, tk, st));
 
     if (tk !== sweepToken) return;
     sweepRunning = false; setSweepButton("idle");
     setStatus("sweep", st.alive ? "live" : "down", st.alive + " alive / " + st.total);
     push(swlog, "sys", "Scan complete", st.alive + " alive, " + st.dead + " no response");
-    logHistory("sweep", swCidr.value.trim());
+    logHistory("sweep", swCidr.value.trim() + (port ? " · port " + port : ""));
     if (!swRows.children.length) swRows.innerHTML = '<div class="empty-state">No alive devices found</div>';
   }
 
@@ -3238,11 +3415,14 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   btnSweep.addEventListener("click", onSweep);
   swCidr.addEventListener("keydown", e => { if (e.key === "Enter") onSweep(); });
   swCidr.addEventListener("focus", () => swCidr.select());
+  swPort.addEventListener("keydown", e => { if (e.key === "Enter") onSweep(); });
+  swPort.addEventListener("focus", () => swPort.select());
   btnSweepReset.addEventListener("click", () => {
     sweepRunning = false; sweepToken++; setSweepButton("idle");
     swRows.innerHTML = '<div class="empty-state">Enter a CIDR and sweep<span>E.g. 192.168.1.0/24 (254 addresses) · max /20 (4096 addresses)</span></div>';
     swlog.innerHTML = "";
     swCount.alive.textContent = swCount.dead.textContent = swCount.total.textContent = swCount.progress.textContent = "—";
+    setSweepHint("");
     setStatus("sweep", "idle", "Ready");
   });
 
@@ -3348,7 +3528,9 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
   /* ── VirusTotal API key (kullanıcının kendi anahtarı) ─── */
   const VT_KEY_STORAGE = "nc-vt-key";
   const VT_APIKEY_URL = "https://www.virustotal.com/gui/my-apikey";
-  const vtApiKeyInput = $("vtApiKey"), btnVtKeySave = $("btnVtKeySave"), btnVtActivate = $("btnVtActivate"), vtKeyNote = $("vtKeyNote");
+  const vtApiKeyInput = $("vtApiKey"), btnVtKeySave = $("btnVtKeySave"), btnVtKeyClear = $("btnVtKeyClear");
+  const btnVtActivate = $("btnVtActivate"), vtKeyNote = $("vtKeyNote");
+  const vtNudge = $("vtNudge"), btnVtGo = $("btnVtGo");
 
   function getVtKey() {
     try { return (localStorage.getItem(VT_KEY_STORAGE) || "").trim(); } catch { return ""; }
@@ -3358,7 +3540,8 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     vtApiKeyInput.value = k;
     vtKeyNote.textContent = k
       ? "Anahtar kayıtlı — sorgular kendi VirusTotal hesabınız üzerinden yapılır."
-      : "Anahtar girilmedi — sorgu yapamazsınız. 'Aktive Et' ile ücretsiz anahtar alıp buraya yapıştırın.";
+      : "Anahtar girilmedi — sorgu yapamazsınız. Aşağıdaki adımları izleyip anahtarınızı ekleyin.";
+    vtNudge.hidden = !!k;
   }
   refreshVtKeyNote();
 
@@ -3367,17 +3550,14 @@ if(q.get("platform")==="app")document.documentElement.dataset.platform="app";})(
     try { localStorage.setItem(VT_KEY_STORAGE, v); } catch { /* yok */ }
     refreshVtKeyNote();
   });
+  btnVtKeyClear.addEventListener("click", () => {
+    try { localStorage.removeItem(VT_KEY_STORAGE); } catch { /* yok */ }
+    refreshVtKeyNote();
+  });
   vtApiKeyInput.addEventListener("keydown", e => { if (e.key === "Enter") btnVtKeySave.click(); });
 
-  btnVtActivate.addEventListener("click", () => {
-    alert(
-      "VirusTotal API anahtarı almak için yönlendiriliyorsunuz.\n\n" +
-      "1) Giriş yapın (hesabınız yoksa ücretsiz oluşturun)\n" +
-      "2) Profil menüsünden \"API Key\" sekmesine gidin\n" +
-      "3) Anahtarı kopyalayıp bu ekrandaki kutuya yapıştırıp Kaydet'e basın"
-    );
-    window.open(VT_APIKEY_URL, "_blank");
-  });
+  btnVtActivate.addEventListener("click", () => window.open(VT_APIKEY_URL, "_blank"));
+  btnVtGo.addEventListener("click", () => window.open(VT_APIKEY_URL, "_blank"));
 
   function setVtButton(m) {
     btnVt.dataset.mode = m;

@@ -92,6 +92,24 @@ def start_agent(port):
     return subprocess.Popen(cmd, **kwargs)
 
 
+class Api:
+    """window.pywebview.api uzerinden JS'e acilan kopru.
+    Sadece bu app kabugundan (webview penceresi) cagrilabilir - duz
+    tarayicidan sayfa acildiginda window.pywebview hic olusmaz."""
+
+    def __init__(self, port):
+        self.port = port
+
+    def agent_status(self):
+        return {"running": probe_agent(self.port)}
+
+    def start_agent(self):
+        if not probe_agent(self.port):
+            start_agent(self.port)
+            wait_ready(self.port, timeout=8)
+        return {"running": probe_agent(self.port)}
+
+
 def main():
     port, need_start = pick_port()
     proc = None
@@ -107,6 +125,7 @@ def main():
         "Network Console", url,
         width=1320, height=900, min_size=(900, 640),
         background_color="#08080D",
+        js_api=Api(port),
     )
     webview.start(icon=icon_path if os.path.isfile(icon_path) else None)
 

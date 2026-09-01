@@ -106,7 +106,7 @@ PING_SWEEP_POOL = 16   # sadece belgeleme amacli - gercek havuz tarayicida (JS)
 # Uygulama surumu. Arayuz bunu /api/health'ten okuyup gosterir, boylece
 # surum tek yerde tanimli kalir. setup.py ve macos/install.sh ile ayni
 # olmali; CI her etiketde ucunun de etiketle esledigini dogrular.
-APP_VERSION = "1.5.1"
+APP_VERSION = "1.5.2"
 
 PROBE_PATHS = ("/api/health", "/api/ping", "/api/tcp", "/api/resolve",
                "/api/traceroute", "/api/dns", "/api/cert", "/api/http", "/api/vtcheck")
@@ -1049,11 +1049,33 @@ def run_with_tray(srv, port, app_dir):
     server_thread.start()
 
     def do_open(icon, item):
+        """'Network Console' penceresi aciksa one getirir; degilse app kabugunu
+        baslatir. Ikisi de yoksa (kaynaktan calisirken ya da Windows disinda)
+        sayfayi tarayicida acar."""
+        if WIN:
+            try:
+                import ctypes
+                user32 = ctypes.windll.user32
+                hwnd = user32.FindWindowW(None, "Network Console")
+                if hwnd:
+                    user32.ShowWindow(hwnd, 9)  # SW_RESTORE (simge durumundaysa geri getir)
+                    user32.SetForegroundWindow(hwnd)
+                    return
+            except Exception:
+                pass
+            exe = os.path.join(app_dir, "NetworkConsole.exe")
+            if os.path.isfile(exe):
+                try:
+                    subprocess.Popen([exe])
+                    return
+                except OSError:
+                    pass
         webbrowser.open("http://127.0.0.1:%d/?platform=app" % port)
 
     def do_quit(icon, item):
         icon.stop()
         srv.shutdown()
+        os._exit(0)  # tum surecin (arka plan thread'leri dahil) kesin kapanmasini garantiler
 
     menu = pystray.Menu(
         pystray.MenuItem("Network Console Agent — port %d" % port, None, enabled=False),
