@@ -19,7 +19,8 @@ class DashboardScreen extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(30),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(t(state.lang, 'dashboard.title'), style: theme.display.copyWith(fontSize: 40)),
+        // Marka slogani - Ping/Trace/... adlari gibi dilden bagimsiz sabit.
+        Text('Measure first, then decide.', style: theme.display.copyWith(fontSize: 40)),
         const SizedBox(height: 14),
         SizedBox(width: 560, child: Text(t(state.lang, 'dashboard.desc'), style: TextStyle(color: c.inkFaint, height: 1.6))),
         const SizedBox(height: 20),

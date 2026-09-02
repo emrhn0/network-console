@@ -931,9 +931,26 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/dns":
             host = arg("host")
             qtype = arg("type", "A").upper()
-            server = arg("server") or (detect_dns_servers() or [""])[0]
-            r = run_dns(host, qtype, server, num("timeout", 3000, 500, 8000))
-            log(peer, "dns", qtype, host, "@" + server, r.get("status", r.get("error")))
+            explicit_server = arg("server")
+            timeout_ms = num("timeout", 3000, 500, 8000)
+            # Kullanici bir sunucu belirtmediyse "auto": sistemin ilk tespit
+            # ettigi DNS sunucusu yanit vermiyorsa (orn. bagli olmayan bir
+            # VPN/hotspot adaptorunun eski adresi) sessizce takilip kalmak
+            # yerine sirayla bir kac tanesini daha dener.
+            servers = [explicit_server] if explicit_server else (detect_dns_servers() or [""])
+            # Otomatik modda birden fazla aday denenecegi icin sunucu basina
+            # sureyi kisaltiyoruz (yoksa 8-10 olu adres * tam sure = cok uzun
+            # surer); tek/acik sunucu secildiyse kullanicinin verdigi tam
+            # sureyi kullaniriz.
+            per_try = timeout_ms if explicit_server else min(timeout_ms, 1500)
+            r = {"ok": False, "error": "gecersiz hedef"}
+            tried = None
+            for srv in servers[:8]:
+                tried = srv
+                r = run_dns(host, qtype, srv, per_try)
+                if r.get("ok"):
+                    break
+            log(peer, "dns", qtype, host, "@" + (tried or "?"), r.get("status", r.get("error")))
             return self._json(r)
 
         if path == "/api/cert":

@@ -47,6 +47,18 @@ class _SweepScreenState extends State<SweepScreen> {
     state.logHistory('sweep', '${_cidr.text.trim()} · $_alive alive');
   }
 
+  StatusKind get _kind {
+    if (_running) return StatusKind.busy;
+    if (_total == 0) return StatusKind.idle;
+    return _alive > 0 ? StatusKind.ok : StatusKind.error;
+  }
+
+  String get _statusText {
+    if (_running) return 'Scanning $_done / $_total…';
+    if (_total == 0) return '';
+    return _alive > 0 ? '$_alive alive / $_total scanned' : 'No alive devices found';
+  }
+
   Future<void> _checkOne(String ip, int? port, int tk, AppState state) async {
     if (port != null) {
       final r = await state.agent.get('/api/tcp', {'host': ip, 'port': '$port', 'timeout': '1600'});
@@ -96,6 +108,8 @@ class _SweepScreenState extends State<SweepScreen> {
         ]),
         if (_hint != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_hint!, style: TextStyle(color: c.alarm, fontSize: 12))),
         const SizedBox(height: 16),
+        StatusLine(kind: _kind, text: _statusText, c: c),
+        const SizedBox(height: 4),
         GridView.count(
           crossAxisCount: 4, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 1.9,

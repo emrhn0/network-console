@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/app_state.dart';
+import '../core/errors.dart';
 import '../core/i18n.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
@@ -29,6 +30,14 @@ class _HttpScreenState extends State<HttpScreen> {
     if (r['ok'] == true) state.logHistory('http', '$url · ${r['final_status']}');
   }
 
+  StatusKind get _kind => _busy ? StatusKind.busy : (_r == null ? StatusKind.idle : (_r!['ok'] == true ? StatusKind.ok : StatusKind.error));
+  String get _statusText {
+    if (_busy) return 'Sending…';
+    if (_r == null) return '';
+    if (_r!['ok'] == true) return 'Final status ${_r!['final_status']}';
+    return friendlyAgentError(_r!['error']?.toString());
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
@@ -50,7 +59,8 @@ class _HttpScreenState extends State<HttpScreen> {
           PrimaryButton(label: t(state.lang, 'action.send'), onPressed: _busy ? null : _run, c: c),
         ]),
         const SizedBox(height: 16),
-        if (r != null && r['ok'] != true) Text(r['error']?.toString() ?? 'error', style: TextStyle(color: c.alarm)),
+        StatusLine(kind: _kind, text: _statusText, c: c),
+        const SizedBox(height: 4),
         if (r != null && r['ok'] == true)
           GridView.count(
             crossAxisCount: 3, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),

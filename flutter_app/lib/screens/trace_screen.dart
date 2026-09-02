@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/app_state.dart';
+import '../core/errors.dart';
 import '../core/i18n.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
@@ -16,13 +17,14 @@ class _TraceScreenState extends State<TraceScreen> {
   bool _busy = false;
   String? _targetIp;
   List<dynamic> _hops = [];
-  String _status = 'Ready';
+  StatusKind _kind = StatusKind.idle;
+  String _status = '';
 
   Future<void> _run() async {
     final host = _host.text.trim();
     if (host.isEmpty) return;
     final state = context.read<AppState>();
-    setState(() { _busy = true; _status = 'Tracing…'; _hops = []; });
+    setState(() { _busy = true; _kind = StatusKind.busy; _status = 'Tracing to $host — this can take up to a minute…'; _hops = []; _targetIp = null; });
     final r = await state.agent.get('/api/traceroute', {'host': host, 'maxhops': '30', 'timeout': '1000'});
     if (!mounted) return;
     setState(() {
@@ -30,10 +32,12 @@ class _TraceScreenState extends State<TraceScreen> {
       if (r['ok'] == true) {
         _targetIp = r['target_ip']?.toString();
         _hops = r['hops'] as List<dynamic>? ?? [];
-        _status = '${_hops.length} hops';
+        _kind = StatusKind.ok;
+        _status = 'Done — ${_hops.length} hops';
         state.logHistory('trace', '$host · ${_hops.length} hops');
       } else {
-        _status = r['error']?.toString() ?? 'failed';
+        _kind = StatusKind.error;
+        _status = friendlyAgentError(r['error']?.toString());
       }
     });
   }
@@ -51,8 +55,8 @@ class _TraceScreenState extends State<TraceScreen> {
           PrimaryButton(label: t(state.lang, 'action.start'), onPressed: _busy ? null : _run, c: c),
         ]),
         const SizedBox(height: 16),
-        Text(_targetIp != null ? 'Target IP: $_targetIp · $_status' : _status, style: TextStyle(color: c.inkFaint, fontSize: 12)),
-        const SizedBox(height: 12),
+        StatusLine(kind: _kind, text: _targetIp != null ? 'Target IP: $_targetIp · $_status' : _status, c: c),
+        const SizedBox(height: 4),
         ResultTable(
           title: 'Hops',
           c: c,

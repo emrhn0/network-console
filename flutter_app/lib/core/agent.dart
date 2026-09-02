@@ -121,10 +121,15 @@ class Agent {
     return false;
   }
 
-  Future<Map<String, dynamic>> get(String path, [Map<String, String>? params]) async {
+  Future<Map<String, dynamic>> get(String path, [Map<String, String>? params, Duration? timeout]) async {
     try {
       final uri = Uri.parse('$base$path').replace(queryParameters: params);
-      final r = await http.get(uri).timeout(const Duration(seconds: 25));
+      // traceroute butcesi agent tarafinda maxhops*3*timeout+10s'ye kadar
+      // cikabilir (bkz. ping-agent.py run_traceroute) - sabit 25s burada
+      // "agent unreachable" yaniligina yol aciyordu, halbuki ajan hala
+      // calisiyordu, sadece uzun suruyordu.
+      final effective = timeout ?? (path == '/api/traceroute' ? const Duration(seconds: 100) : const Duration(seconds: 25));
+      final r = await http.get(uri).timeout(effective);
       return jsonDecode(r.body) as Map<String, dynamic>;
     } catch (e) {
       return {'ok': false, 'error': 'agent unreachable'};

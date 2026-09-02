@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/app_state.dart';
 import '../core/constants.dart';
+import '../core/errors.dart';
 import '../core/i18n.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_colors.dart';
@@ -17,11 +18,45 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _key;
+  StatusKind _testKind = StatusKind.idle;
+  String _testText = '';
 
   @override
   void initState() {
     super.initState();
-    _key = TextEditingController(text: context.read<AppState>().vtKey);
+    final existing = context.read<AppState>().vtKey;
+    _key = TextEditingController(text: existing);
+    if (existing.isNotEmpty) _testKey(existing);
+  }
+
+  Future<void> _testKey(String value) async {
+    final state = context.read<AppState>();
+    setState(() { _testKind = StatusKind.busy; _testText = 'Checking key against VirusTotal…'; });
+    final r = await state.agent.vtCheck('https://www.google.com', value);
+    if (!mounted) return;
+    setState(() {
+      if (r['ok'] == true) {
+        _testKind = StatusKind.ok;
+        _testText = 'Key works';
+      } else {
+        _testKind = StatusKind.error;
+        _testText = friendlyAgentError(r['error']?.toString());
+      }
+    });
+  }
+
+  /// Anahtari kaydettikten sonra gercekten calisip calismadigini test eder -
+  /// kullaniciyi tahminde birakmak yerine "kontrol ediliyor" -> "calisiyor"
+  /// veya "calismiyor, sebep su" seklinde surekli bilgilendirir.
+  Future<void> _saveAndTest() async {
+    final state = context.read<AppState>();
+    final value = _key.text.trim();
+    state.setVtKey(value);
+    if (value.isEmpty) {
+      setState(() { _testKind = StatusKind.idle; _testText = ''; });
+      return;
+    }
+    await _testKey(value);
   }
 
   @override
@@ -42,14 +77,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(children: [
               Expanded(child: LabeledField(label: '', controller: _key, c: c, obscure: true, hint: t(lang, 'settings.vtPlaceholder'))),
               const SizedBox(width: 10),
-              GhostButton(label: t(lang, 'action.save'), c: c, onPressed: () => state.setVtKey(_key.text)),
+              GhostButton(label: t(lang, 'action.save'), c: c, onPressed: _saveAndTest),
               const SizedBox(width: 8),
-              GhostButton(label: t(lang, 'action.remove'), c: c, onPressed: () { _key.clear(); state.clearVtKey(); }),
+              GhostButton(label: t(lang, 'action.remove'), c: c, onPressed: () {
+                _key.clear();
+                state.clearVtKey();
+                setState(() { _testKind = StatusKind.idle; _testText = ''; });
+              }),
               const SizedBox(width: 8),
               GhostButton(label: t(lang, 'action.goVt'), c: c, icon: Icon(Icons.north_east, size: 12, color: c.inkFaint), onPressed: () => launchUrl(Uri.parse(kVtApiKeyUrl))),
             ]),
             const SizedBox(height: 10),
-            Text(state.vtKey.isNotEmpty ? t(lang, 'settings.vtHave') : t(lang, 'settings.vtMissing'), style: TextStyle(color: c.inkFaint, fontSize: 11.5)),
+            if (_testText.isNotEmpty)
+              StatusLine(kind: _testKind, text: _testText, c: c)
+            else
+              Text(state.vtKey.isNotEmpty ? t(lang, 'settings.vtHave') : t(lang, 'settings.vtMissing'), style: TextStyle(color: c.inkFaint, fontSize: 11.5)),
             const SizedBox(height: 6),
             Text(t(lang, 'settings.vtSteps'), style: TextStyle(color: c.inkGhost, fontSize: 11, height: 1.5)),
           ]),

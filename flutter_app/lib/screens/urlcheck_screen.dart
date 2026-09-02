@@ -212,7 +212,15 @@ class _UrlCheckScreenState extends State<UrlCheckScreen> {
               ]),
             ),
           ),
-        if (_bulkProgress != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_bulkProgress!, style: TextStyle(color: c.inkFaint, fontSize: 12))),
+        if (_bulkProgress != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: StatusLine(
+              kind: _busy ? StatusKind.busy : (_bulkProgress!.contains('No VirusTotal') ? StatusKind.error : StatusKind.ok),
+              text: _bulkProgress!,
+              c: c,
+            ),
+          ),
         const SizedBox(height: 16),
         SectionCard(
           c: c,

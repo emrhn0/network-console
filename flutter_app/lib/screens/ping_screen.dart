@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../core/app_state.dart';
+import '../core/errors.dart';
 import '../core/i18n.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
@@ -24,6 +25,8 @@ class _PingScreenState extends State<PingScreen> {
   Timer? _timer;
   String? _resolvedIp, _ptr;
   DateTime? _started;
+  bool? _lastOk;
+  String _lastError = '';
 
   @override
   void dispose() {
@@ -45,7 +48,7 @@ class _PingScreenState extends State<PingScreen> {
       _running = true;
       _samples.clear(); _log.clear();
       _sent = 0; _lost = 0; _last = 0; _min = 0; _max = 0; _avg = 0; _jitter = 0;
-      _resolvedIp = null; _ptr = null; _started = DateTime.now();
+      _resolvedIp = null; _ptr = null; _started = DateTime.now(); _lastOk = null; _lastError = '';
     });
     final res = await state.agent.get('/api/resolve', {'host': host});
     if (mounted && res['ok'] == true) {
@@ -88,9 +91,12 @@ class _PingScreenState extends State<PingScreen> {
           _jitter = sum / (vals.length - 1);
         }
         _log.insert(0, LogLine(LogKind.ok, '$host responded', '${ms.toStringAsFixed(0)} ms · TTL $_lastTtl', _clock()));
+        _lastOk = true;
       } else {
         _lost++;
         _samples.add(null);
+        _lastOk = false;
+        _lastError = friendlyAgentError(r['error']?.toString());
         _log.insert(0, LogLine(LogKind.err, host, r['error']?.toString() ?? 'timeout', _clock()));
       }
       if (_log.length > 80) _log.removeLast();
@@ -140,7 +146,17 @@ class _PingScreenState extends State<PingScreen> {
             c: c,
           ),
         ]),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
+        StatusLine(
+          kind: _running
+              ? (_lastOk == false ? StatusKind.error : StatusKind.busy)
+              : (_lastOk == null ? StatusKind.idle : (_lastOk! ? StatusKind.ok : StatusKind.error)),
+          text: _running
+              ? (_lastOk == false ? 'No response — retrying ($_lastError)' : 'Pinging…')
+              : (_lastOk == null ? '' : (_lastOk! ? 'Responding' : 'Stopped — $_lastError')),
+          c: c,
+        ),
+        const SizedBox(height: 4),
         if (_started != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 16),

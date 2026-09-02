@@ -180,6 +180,44 @@ class StatCell extends StatelessWidget {
       );
 }
 
+enum StatusKind { idle, busy, ok, error }
+
+/// Ekranin ust kisminda "su an ne oluyor" durumunu net gosteren serit -
+/// busy'de donen bir gostergeyle, hata'da kirmizi ile. Eskiden sadece kucuk
+/// gri bir metin vardi, "calisiyor mu calismiyor mu" belirsizligi yaratiyordu.
+class StatusLine extends StatelessWidget {
+  final StatusKind kind;
+  final String text;
+  final AppColors c;
+  const StatusLine({super.key, required this.kind, required this.text, required this.c});
+
+  @override
+  Widget build(BuildContext context) {
+    if (kind == StatusKind.idle && text.isEmpty) return const SizedBox.shrink();
+    final color = switch (kind) {
+      StatusKind.busy => c.accent,
+      StatusKind.error => c.alarm,
+      StatusKind.ok => c.ok,
+      StatusKind.idle => c.inkFaint,
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (kind == StatusKind.busy)
+          SizedBox(width: 13, height: 13, child: CircularProgressIndicator(strokeWidth: 2, color: color))
+        else
+          Icon(
+            kind == StatusKind.error ? Icons.error_outline : (kind == StatusKind.ok ? Icons.check_circle_outline : Icons.circle),
+            size: kind == StatusKind.idle ? 6 : 14,
+            color: color,
+          ),
+        const SizedBox(width: 8),
+        Flexible(child: Text(text, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: color))),
+      ]),
+    );
+  }
+}
+
 enum LogKind { sys, ok, err, warn }
 
 class LogLine {
