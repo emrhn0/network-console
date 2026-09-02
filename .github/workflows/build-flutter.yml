@@ -1,0 +1,100 @@
+name: Build Flutter app (v2)
+
+# v2.*.* etiketinde Windows Flutter derlemesini paketler ve GitHub
+# Release'e ekler. flutter_app/ altindaki native rewrite icin ayri
+# is akisi - eski (HTML/pywebview) build-installers.yml'a dokunmaz.
+on:
+  push:
+    tags:
+      - "v2.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: ver
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0-dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build agent exe (Python backend, unchanged from the HTML app)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pystray pillow
+          pyinstaller NetworkConsole-Agent.spec
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Build Flutter Windows release
+        working-directory: flutter_app
+        run: |
+          flutter pub get
+          flutter build windows --release
+
+      - name: Package
+        shell: bash
+        run: |
+          OUT="Network_Console_${{ steps.ver.outputs.version }}_windows"
+          mkdir -p "dist2/$OUT"
+          cp -r flutter_app/build/windows/x64/runner/Release/* "dist2/$OUT/"
+          cp dist/NetworkConsole-Agent.exe "dist2/$OUT/"
+          cd dist2 && 7z a "${OUT}.zip" "$OUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-flutter
+          path: dist2/*.zip
+          if-no-files-found: error
+
+  release:
+    needs: windows
+    if: startsWith(github.ref, 'refs/tags/v2.')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Publish release
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          ls -la artifacts/*/
+          NOTES=$(cat <<'EOF'
+          Network Console 2.0 (native Flutter rewrite - Windows preview)
+
+          Same measurement backend (the Python agent is unchanged), completely
+          new native UI written in Flutter - no more HTML/WebView2. Unzip and
+          run network_console_app.exe; the local agent starts automatically.
+
+          This is a preview release: if you don't like it, 1.5.x keeps working
+          exactly as before and continues to be updated separately.
+          EOF
+          )
+          gh release create "$TAG" artifacts/windows-flutter/*.zip \
+            --title "Network Console $TAG (Flutter preview)" \
+            --notes "$NOTES" \
+            --prerelease \
+          || {
+            gh release upload "$TAG" artifacts/windows-flutter/*.zip --clobber
+            gh release edit "$TAG" --title "Network Console $TAG (Flutter preview)" --notes "$NOTES" --prerelease
+          }
