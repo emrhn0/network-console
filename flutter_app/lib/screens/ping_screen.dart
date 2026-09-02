@@ -43,7 +43,8 @@ class _Target {
 }
 
 class PingScreen extends StatefulWidget {
-  const PingScreen({super.key});
+  final bool active;
+  const PingScreen({super.key, required this.active});
   @override
   State<PingScreen> createState() => _PingScreenState();
 }
@@ -54,10 +55,44 @@ class _PingScreenState extends State<PingScreen> {
   bool _running = false;
   int _interval = 1000;
   Timer? _decayTimer; // sadece flash suresi dolunca bari normale dondurmek icin, kisa araliklarla rebuild eder
+  Timer? _awayTimer; // sekmeden ayrilinca 2 dk sonra sifirlamak icin
+
+  @override
+  void didUpdateWidget(covariant PingScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.active && !widget.active) {
+      _awayTimer?.cancel();
+      _awayTimer = Timer(const Duration(minutes: 2), _resetAll);
+    } else if (!oldWidget.active && widget.active) {
+      _awayTimer?.cancel();
+    }
+  }
+
+  void _resetAll() {
+    if (!mounted) return;
+    _stop();
+    setState(() {
+      for (final t in _targets) {
+        t.dispose();
+      }
+      _targets
+        ..clear()
+        ..add(_Target());
+      _log.clear();
+    });
+  }
+
+  void _addTarget() {
+    setState(() => _targets.add(_Target()));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _targets.last.focus.requestFocus();
+    });
+  }
 
   @override
   void dispose() {
     _decayTimer?.cancel();
+    _awayTimer?.cancel();
     for (final t in _targets) {
       t.dispose();
     }
@@ -73,10 +108,7 @@ class _PingScreenState extends State<PingScreen> {
     final t = _targets[i];
     if (t.host.isEmpty) return;
     if (i == _targets.length - 1) {
-      setState(() => _targets.add(_Target()));
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _targets.last.focus.requestFocus();
-      });
+      _addTarget();
     } else if (i + 1 < _targets.length) {
       _targets[i + 1].focus.requestFocus();
     } else if (!_running) {
@@ -205,6 +237,7 @@ class _PingScreenState extends State<PingScreen> {
                     isLast: i == _targets.length - 1,
                     onSubmitted: () => _onSubmit(i),
                     onRemove: _targets.length > 1 || _targets[i].host.isNotEmpty ? () => _removeTarget(i) : null,
+                    onAdd: i == _targets.length - 1 && !_running ? _addTarget : null,
                   ),
                 ),
             ]),
@@ -287,9 +320,10 @@ class _TargetField extends StatelessWidget {
   final bool running, isLast;
   final VoidCallback onSubmitted;
   final VoidCallback? onRemove;
+  final VoidCallback? onAdd;
   const _TargetField({
     required this.target, required this.c, required this.lang, required this.running,
-    required this.isLast, required this.onSubmitted, required this.onRemove,
+    required this.isLast, required this.onSubmitted, required this.onRemove, required this.onAdd,
   });
 
   @override
@@ -301,45 +335,64 @@ class _TargetField extends StatelessWidget {
     if (target.lastOk == true) dot = c.ok;
     if (target.lastOk == false) dot = c.alarm;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: flashing ? flashColor.withValues(alpha: .22) : c.bgSink,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: flashing ? flashColor : c.line, width: flashing ? 1.4 : 1),
-      ),
-      child: Row(children: [
-        Caption(t(lang, 'field.target'), c),
-        const SizedBox(width: 10),
-        if (running || target.lastOk != null)
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Container(width: 8, height: 8, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+    return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+      Expanded(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: flashing ? flashColor.withValues(alpha: .22) : c.bgSink,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: flashing ? flashColor : c.line, width: flashing ? 1.4 : 1),
           ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: target.controller,
-            focusNode: target.focus,
-            readOnly: running,
-            style: GoogleFonts.spaceMono(color: c.ink, fontSize: 15),
-            cursorColor: c.accent,
-            decoration: InputDecoration(
-              border: InputBorder.none, isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 16),
-              hintText: isLast ? '8.8.8.8 · google.com — Enter adds another' : null,
-              hintStyle: TextStyle(color: c.inkGhost),
+          child: Row(children: [
+            Caption(t(lang, 'field.target'), c),
+            const SizedBox(width: 10),
+            if (running || target.lastOk != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: Container(width: 8, height: 8, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+              ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
+                controller: target.controller,
+                focusNode: target.focus,
+                readOnly: running,
+                style: GoogleFonts.spaceMono(color: c.ink, fontSize: 15),
+                cursorColor: c.accent,
+                decoration: InputDecoration(
+                  border: InputBorder.none, isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                  hintText: isLast ? '8.8.8.8 · google.com — Enter or + adds another' : null,
+                  hintStyle: TextStyle(color: c.inkGhost),
+                ),
+                onSubmitted: (_) => onSubmitted(),
+              ),
             ),
-            onSubmitted: (_) => onSubmitted(),
+            if (onRemove != null && !running)
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(onTap: onRemove, child: Icon(Icons.close, size: 16, color: c.inkFaint)),
+              ),
+          ]),
+        ),
+      ),
+      if (onAdd != null) ...[
+        const SizedBox(width: 8),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: onAdd,
+            child: Container(
+              width: 52, height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(border: Border.all(color: c.line), borderRadius: BorderRadius.circular(10)),
+              child: Icon(Icons.add, size: 18, color: c.inkSoft),
+            ),
           ),
         ),
-        if (onRemove != null && !running)
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(onTap: onRemove, child: Icon(Icons.close, size: 16, color: c.inkFaint)),
-          ),
-      ]),
-    );
+      ],
+    ]);
   }
 }
 

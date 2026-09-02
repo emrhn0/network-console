@@ -25,24 +25,34 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
+const List<String> _viewOrder = [
+  'dashboard', 'ping', 'trace', 'telnet', 'dns', 'cert', 'http', 'sweep', 'subnet', 'urlcheck', 'settings',
+];
+
 class _AppShellState extends State<AppShell> {
   String _view = 'dashboard';
 
   void _go(String v) => setState(() => _view = v);
 
-  Widget _page(String v) => switch (v) {
-        'ping' => const PingScreen(),
-        'trace' => const TraceScreen(),
-        'telnet' => const TelnetScreen(),
-        'dns' => const DnsScreen(),
-        'cert' => const CertScreen(),
-        'http' => const HttpScreen(),
-        'sweep' => const SweepScreen(),
-        'subnet' => const SubnetScreen(),
-        'urlcheck' => const UrlCheckScreen(),
-        'settings' => const SettingsScreen(),
-        _ => DashboardScreen(onGo: _go),
-      };
+  /// Butun sayfalari IndexedStack ile gosterip/gizliyoruz (switch ile her
+  /// sekmede yeniden insa etmek yerine) - ayni tip+konum her build'de
+  /// eslesince Flutter State'lerini korur, boylece bir aracta girilmis
+  /// veri/calisan olcum baska sekmeye bakip geri donulunce KAYBOLMUYOR.
+  /// Ping ozelinde ayrica 2 dakikalik "uzaklasinca sifirla" davranisi icin
+  /// kendi "active" bayragini alir.
+  List<Widget> _buildPages() => [
+        DashboardScreen(onGo: _go),
+        PingScreen(active: _view == 'ping'),
+        const TraceScreen(),
+        const TelnetScreen(),
+        const DnsScreen(),
+        const CertScreen(),
+        const HttpScreen(),
+        const SweepScreen(),
+        const SubnetScreen(),
+        const UrlCheckScreen(),
+        const SettingsScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -119,7 +129,7 @@ class _AppShellState extends State<AppShell> {
                 Text(_view == 'dashboard' ? '' : '/ ${(kToolLabel[_view] ?? _view).toUpperCase()}', style: TextStyle(color: c.inkGhost, fontSize: 11, letterSpacing: 1)),
               ]),
             ),
-            Expanded(child: _page(_view)),
+            Expanded(child: IndexedStack(index: _viewOrder.indexOf(_view), children: _buildPages())),
           ]),
         ),
       ])),
