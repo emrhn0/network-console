@@ -5,7 +5,7 @@
 ; ile PAYLOAD_DIR degiskeninde saglanir; yerel test icin varsayilan yol
 ; asagida.
 #ifndef MyAppVersion
-  #define MyAppVersion "2.0.1"
+  #define MyAppVersion "2.1.0"
 #endif
 #ifndef PayloadDir
   #define PayloadDir "..\build\windows\x64\runner\Release"
@@ -27,9 +27,20 @@ SolidCompression=yes
 SetupIconFile=..\..\network-console-icon.ico
 UninstallDisplayIcon={app}\network_console_app.exe
 ArchitecturesInstallIn64BitMode=x64compatible
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
+
+; Kullanici verisi (VirusTotal anahtari, tema, dil - shared_preferences)
+; %APPDATA% altinda, {app} klasorunun DISINDA saklanir; asagidaki temizlik
+; sadece eski surumun program dosyalarini siler, ayarlara dokunmaz.
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\data"
+Type: files; Name: "{app}\*.dll"
+Type: files; Name: "{app}\*.exe"
+Type: files; Name: "{app}\*.pdb"
 
 [Files]
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion

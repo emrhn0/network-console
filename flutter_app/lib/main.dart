@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'core/app_state.dart';
 import 'screens/app_shell.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+  const options = WindowOptions(
+    size: Size(1320, 900),
+    minimumSize: Size(900, 620),
+    center: false,
+    backgroundColor: Colors.transparent,
+    titleBarStyle: TitleBarStyle.hidden, // native baslik cubugu yerine kendi cizdigimiz kullanilir
+    title: 'Network Console',
+  );
+  windowManager.waitUntilReadyToShow(options, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
   runApp(const NetworkConsoleApp());
 }
 

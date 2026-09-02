@@ -51,10 +51,26 @@ class _UrlCheckScreenState extends State<UrlCheckScreen> {
     return {'mal': m > 0 ? 1 : 0, 'sus': (m == 0 && s > 0) ? 1 : 0};
   }
 
-  Future<void> _checkSingle() async {
-    final raw = _url.text.trim();
-    if (raw.isEmpty) return;
-    final url = _normalize(raw)!;
+  /// Kutuya yapistirilan/yazilan metni satir satir ayirir. Tek satirsa tekli
+  /// sorgu akisini, birden fazlaysa toplu taramayi calistirir - ayni kutu,
+  /// ayri .txt ice aktarmaya gerek kalmadan Ctrl+V ile liste atmayi da kapsar.
+  Future<void> _run() async {
+    final lines = _url.text
+        .split(RegExp(r'\r?\n'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty && !s.startsWith('#'))
+        .toList();
+    if (lines.isEmpty) return;
+    if (lines.length == 1) {
+      await _checkSingle(lines.first);
+    } else {
+      await _runBulk(lines);
+    }
+  }
+
+  Future<void> _checkSingle(String raw) async {
+    final url = _normalize(raw);
+    if (url == null) return;
     final state = context.read<AppState>();
     setState(() => _busy = true);
     _log.insert(0, LogLine(LogKind.sys, 'Query: $url', '', _clock()));
@@ -145,10 +161,30 @@ class _UrlCheckScreenState extends State<UrlCheckScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(26),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: LabeledField(label: t(state.lang, 'field.url'), controller: _url, c: c, hint: 'youtube.com · https://example.com/path', onSubmitted: (_) => _checkSingle())),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(color: c.bgSink, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.line)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Caption(t(state.lang, 'field.url'), c),
+                TextField(
+                  controller: _url,
+                  minLines: 1,
+                  maxLines: 6,
+                  style: TextStyle(color: c.ink, fontFamily: 'monospace', fontSize: 14),
+                  cursorColor: c.accent,
+                  decoration: InputDecoration(
+                    border: InputBorder.none, isDense: true, contentPadding: const EdgeInsets.only(top: 8),
+                    hintText: 'youtube.com  ·  https://example.com/path\nor paste a list, one URL per line (Ctrl+V)',
+                    hintStyle: TextStyle(color: c.inkGhost),
+                  ),
+                ),
+              ]),
+            ),
+          ),
           const SizedBox(width: 10),
-          PrimaryButton(label: t(state.lang, 'action.check'), onPressed: _busy ? null : _checkSingle, c: c),
+          PrimaryButton(label: t(state.lang, 'action.check'), onPressed: _busy ? null : _run, c: c),
           const SizedBox(width: 10),
           GhostButton(label: t(state.lang, 'action.import'), onPressed: _busy ? null : _importFile, c: c, icon: Icon(Icons.file_upload_outlined, size: 15, color: c.inkFaint)),
         ]),

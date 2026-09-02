@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../core/app_state.dart';
+import '../core/constants.dart';
 import '../core/i18n.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_colors.dart';
@@ -101,7 +102,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 10, crossAxisSpacing: 10, childAspectRatio: 3.4,
               children: [
-                StatCell(t(lang, 'settings.version'), health?['app_version']?.toString() ?? '—', c),
+                StatCell(t(lang, 'settings.version'), 'v$kAppVersion', c),
+                StatCell('Agent', health?['app_version'] != null ? 'v${health!['app_version']}' : '—', c),
                 StatCell(t(lang, 'settings.host'), health?['host']?.toString() ?? '—', c),
                 StatCell(t(lang, 'settings.os'), health?['os']?.toString() ?? '—', c),
                 StatCell(t(lang, 'settings.method'), state.agentMethod, c),

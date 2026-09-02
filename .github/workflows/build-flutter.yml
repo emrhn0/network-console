@@ -110,10 +110,9 @@ jobs:
           EOF
           )
           gh release create "$TAG" artifacts/windows-flutter/*.zip artifacts/windows-flutter/*Setup.exe \
-            --title "Network Console $TAG (Flutter preview)" \
+            --title "Network Console $TAG" \
             --notes "$NOTES" \
-            --prerelease \
           || {
             gh release upload "$TAG" artifacts/windows-flutter/*.zip artifacts/windows-flutter/*Setup.exe --clobber
-            gh release edit "$TAG" --title "Network Console $TAG (Flutter preview)" --notes "$NOTES" --prerelease
+            gh release edit "$TAG" --title "Network Console $TAG" --notes "$NOTES"
           }

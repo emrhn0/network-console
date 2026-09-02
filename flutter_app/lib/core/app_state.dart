@@ -12,7 +12,7 @@ class AppState extends ChangeNotifier {
   final Agent agent = Agent();
   SharedPreferences? _prefs;
 
-  bool isDark = true;
+  bool isDark = false;
   String lang = 'en'; // 'en' | 'tr'
   String vtKey = '';
   bool agentConnected = false;
@@ -22,7 +22,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
-    isDark = _prefs?.getBool('nc-dark') ?? true;
+    isDark = _prefs?.getBool('nc-dark') ?? false;
     lang = _prefs?.getString('nc-lang') ?? 'en';
     vtKey = _prefs?.getString('nc-vt-key') ?? '';
     notifyListeners();

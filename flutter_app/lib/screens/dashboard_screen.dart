@@ -46,7 +46,7 @@ class DashboardScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(t(state.lang, 'nav.${item.key == 'trace' ? 'trace' : item.key}'), style: GoogleFonts.fraunces(fontStyle: FontStyle.italic, fontWeight: FontWeight.w600, fontSize: 16, color: c.ink)),
+                      Text(item.label, style: GoogleFonts.fraunces(fontStyle: FontStyle.italic, fontWeight: FontWeight.w600, fontSize: 16, color: c.ink)),
                       const SizedBox(height: 3),
                       Text(t(state.lang, 'desc.${item.key}'), style: TextStyle(color: c.inkFaint, fontSize: 11), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ]),
@@ -77,7 +77,7 @@ class DashboardScreen extends StatelessWidget {
               ...state.history.take(10).map((h) => ListTile(
                     dense: true,
                     title: Text(h.summary, style: TextStyle(color: c.inkSoft, fontSize: 12)),
-                    leading: Text(h.view, style: TextStyle(color: c.accent, fontSize: 11)),
+                    leading: Text(kToolLabel[h.view] ?? h.view, style: TextStyle(color: c.accent, fontSize: 11)),
                     onTap: () => onGo(h.view == 'trace' ? 'trace' : h.view),
                   )),
           ]),
