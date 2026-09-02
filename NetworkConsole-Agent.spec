@@ -1,12 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
+import sys
 
+# pystray._win32 sadece Windows'ta var - macOS/Linux derlemesinde PyInstaller
+# bu modulu bulmaya calisip patlar, o yuzden platforma gore kosullu.
+_hidden = ['pystray._win32'] if sys.platform.startswith('win') else []
+_icon = ['network-console-icon.ico'] if sys.platform.startswith('win') else None
 
 a = Analysis(
     ['ping-agent.py'],
     pathex=[],
     binaries=[],
     datas=[('network-console-icon.ico', '.')],
-    hiddenimports=['pystray._win32'],
+    hiddenimports=_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -35,5 +40,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['network-console-icon.ico'],
+    icon=_icon,
 )
