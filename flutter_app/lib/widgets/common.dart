@@ -34,7 +34,7 @@ class SectionCard extends StatelessWidget {
       );
 }
 
-class LabeledField extends StatelessWidget {
+class LabeledField extends StatefulWidget {
   final String label;
   final TextEditingController controller;
   final String? hint;
@@ -47,25 +47,42 @@ class LabeledField extends StatelessWidget {
     this.hint, this.obscure = false, this.onSubmitted, this.onChanged,
   });
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: c.bgSink, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.line)),
-        child: Row(children: [
-          Caption(label, c),
-          const SizedBox(width: 14),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              obscureText: obscure,
-              style: GoogleFonts.spaceMono(color: c.ink, fontSize: 15),
-              cursorColor: c.accent,
-              decoration: InputDecoration(border: InputBorder.none, hintText: hint, hintStyle: TextStyle(color: c.inkGhost), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 16)),
-              onSubmitted: onSubmitted,
-              onChanged: onChanged == null ? null : (_) => onChanged!(),
+  State<LabeledField> createState() => _LabeledFieldState();
+}
+
+class _LabeledFieldState extends State<LabeledField> {
+  late bool _hidden = widget.obscure;
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.c;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: c.bgSink, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.line)),
+      child: Row(children: [
+        Caption(widget.label, c),
+        const SizedBox(width: 14),
+        Expanded(
+          child: TextField(
+            controller: widget.controller,
+            obscureText: _hidden,
+            style: GoogleFonts.spaceMono(color: c.ink, fontSize: 15),
+            cursorColor: c.accent,
+            decoration: InputDecoration(border: InputBorder.none, hintText: widget.hint, hintStyle: TextStyle(color: c.inkGhost), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 16)),
+            onSubmitted: widget.onSubmitted,
+            onChanged: widget.onChanged == null ? null : (_) => widget.onChanged!(),
+          ),
+        ),
+        if (widget.obscure)
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => setState(() => _hidden = !_hidden),
+              child: Icon(_hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 17, color: c.inkFaint),
             ),
           ),
-        ]),
-      );
+      ]),
+    );
+  }
 }
 
 /// Basinca kucu(l)up birakinca geri donen sarmalayici - "tikladigimi hissettim"

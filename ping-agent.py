@@ -1080,13 +1080,16 @@ def run_with_tray(srv, port, app_dir):
                     return
             except Exception:
                 pass
-            exe = os.path.join(app_dir, "NetworkConsole.exe")
-            if os.path.isfile(exe):
-                try:
-                    subprocess.Popen([exe])
-                    return
-                except OSError:
-                    pass
+            # "NetworkConsole.exe" eski pywebview kabugu, "network_console_app.exe"
+            # yeni Flutter uygulamasi - hangisi bu klasordeyse onu baslat.
+            for name in ("NetworkConsole.exe", "network_console_app.exe"):
+                exe = os.path.join(app_dir, name)
+                if os.path.isfile(exe):
+                    try:
+                        subprocess.Popen([exe])
+                        return
+                    except OSError:
+                        continue
         webbrowser.open("http://127.0.0.1:%d/?platform=app" % port)
 
     def do_quit(icon, item):
