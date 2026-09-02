@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:io';
+import 'package:excel/excel.dart' as excel_lib;
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -122,28 +122,40 @@ class _UrlCheckScreenState extends State<UrlCheckScreen> {
 
   Future<void> _export() async {
     if (_rows.isEmpty) return;
-    final buf = StringBuffer();
-    for (final r in _rows) {
-      buf.writeln(r.cells.map((c) => c.contains(',') ? '"${c.replaceAll('"', '""')}"' : c).join(','));
-    }
-    final suggested = 'network-console-urlcheck-${DateTime.now().millisecondsSinceEpoch}.csv';
+    final suggested = 'network-console-urlcheck-${DateTime.now().millisecondsSinceEpoch}.xlsx';
     String? path;
     try {
       final location = await getSaveLocation(
         suggestedName: suggested,
-        acceptedTypeGroups: const [XTypeGroup(label: 'CSV', extensions: ['csv'])],
+        acceptedTypeGroups: const [XTypeGroup(label: 'Excel', extensions: ['xlsx'])],
       );
       path = location?.path;
     } catch (e) {
-      path = null;
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
       return;
     }
     if (path == null) return; // kullanici iptal etti
-    if (!path.toLowerCase().endsWith('.csv')) path = '$path.csv';
+    if (!path.toLowerCase().endsWith('.xlsx')) path = '$path.xlsx';
     try {
+      final book = excel_lib.Excel.createExcel();
+      final sheetName = book.getDefaultSheet()!;
+      final sheet = book[sheetName];
+      const headers = ['URL', 'Verdict', 'Engines', 'Last analysis'];
+      sheet.appendRow(headers.map((h) => excel_lib.TextCellValue(h)).toList());
+      for (final c in sheet.row(0)) {
+        c?.cellStyle = excel_lib.CellStyle(bold: true);
+      }
+      for (final r in _rows) {
+        sheet.appendRow(r.cells.map((v) => excel_lib.TextCellValue(v)).toList());
+      }
+      sheet.setColumnWidth(0, 42);
+      sheet.setColumnWidth(1, 14);
+      sheet.setColumnWidth(2, 12);
+      sheet.setColumnWidth(3, 20);
+      final bytes = book.encode();
+      if (bytes == null) throw Exception('encode failed');
       final file = File(path);
-      await file.writeAsBytes(utf8.encode(buf.toString()), flush: true);
+      await file.writeAsBytes(bytes, flush: true);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved to $path'), duration: const Duration(seconds: 3)));
       }
