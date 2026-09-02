@@ -68,6 +68,42 @@ class LabeledField extends StatelessWidget {
       );
 }
 
+/// Basinca kucu(l)up birakinca geri donen sarmalayici - "tikladigimi hissettim"
+/// hissi icin. Mouse hover'da da hafif isik degisimi verir.
+class _Pressable extends StatefulWidget {
+  final Widget child;
+  final VoidCallback? onTap;
+  const _Pressable({required this.child, required this.onTap});
+  @override
+  State<_Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<_Pressable> {
+  bool _down = false, _hover = false;
+  @override
+  Widget build(BuildContext context) => MouseRegion(
+        cursor: widget.onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hover = true),
+        onExit: (_) => setState(() => _hover = false),
+        child: GestureDetector(
+          onTapDown: widget.onTap == null ? null : (_) => setState(() => _down = true),
+          onTapUp: widget.onTap == null ? null : (_) => setState(() => _down = false),
+          onTapCancel: widget.onTap == null ? null : () => setState(() => _down = false),
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: _down ? 0.965 : 1.0,
+            duration: const Duration(milliseconds: 90),
+            curve: Curves.easeOut,
+            child: AnimatedOpacity(
+              opacity: widget.onTap == null ? 0.5 : (_hover ? 1.0 : 0.94),
+              duration: const Duration(milliseconds: 120),
+              child: widget.child,
+            ),
+          ),
+        ),
+      );
+}
+
 class PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -75,18 +111,18 @@ class PrimaryButton extends StatelessWidget {
   final bool running;
   const PrimaryButton({super.key, required this.label, required this.onPressed, required this.c, this.running = false});
   @override
-  Widget build(BuildContext context) => SizedBox(
-        height: 52,
-        child: ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: running ? const Color(0xFFC4402A) : c.accent,
-            foregroundColor: c.accentInk,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            padding: const EdgeInsets.symmetric(horizontal: 26),
-            elevation: 0,
+  Widget build(BuildContext context) => _Pressable(
+        onTap: onPressed,
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 26),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: onPressed == null ? c.inkGhost : (running ? const Color(0xFFC4402A) : c.accent),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: onPressed == null ? null : [BoxShadow(color: (running ? const Color(0xFFC4402A) : c.accent).withValues(alpha: .35), blurRadius: 16, offset: const Offset(0, 4))],
           ),
-          child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w700, letterSpacing: .2)),
+          child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w700, letterSpacing: .2, color: c.accentInk)),
         ),
       );
 }
@@ -98,18 +134,19 @@ class GhostButton extends StatelessWidget {
   final Widget? icon;
   const GhostButton({super.key, required this.label, required this.onPressed, required this.c, this.icon});
   @override
-  Widget build(BuildContext context) => OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: c.inkSoft,
-          side: BorderSide(color: c.line),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  Widget build(BuildContext context) => _Pressable(
+        onTap: onPressed,
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: c.line),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (icon != null) ...[icon!, const SizedBox(width: 6)],
+            Text(label, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: c.inkSoft)),
+          ]),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (icon != null) ...[icon!, const SizedBox(width: 6)],
-          Text(label, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600)),
-        ]),
       );
 }
 

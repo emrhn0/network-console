@@ -47,19 +47,34 @@ jobs:
           flutter pub get
           flutter build windows --release
 
-      - name: Package
+      - name: Stage agent next to the Flutter exe
+        shell: bash
+        run: cp dist/NetworkConsole-Agent.exe flutter_app/build/windows/x64/runner/Release/
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Build installer (.exe)
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            "/DMyAppVersion=${{ steps.ver.outputs.version }}" `
+            flutter_app\windows\installer.iss
+
+      - name: Zip portable build (no-installer alternative)
         shell: bash
         run: |
-          OUT="Network_Console_${{ steps.ver.outputs.version }}_windows"
+          OUT="Network_Console_${{ steps.ver.outputs.version }}_windows_portable"
           mkdir -p "dist2/$OUT"
           cp -r flutter_app/build/windows/x64/runner/Release/* "dist2/$OUT/"
-          cp dist/NetworkConsole-Agent.exe "dist2/$OUT/"
           cd dist2 && 7z a "${OUT}.zip" "$OUT"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-flutter
-          path: dist2/*.zip
+          path: |
+            dist2/*.zip
+            dist2/*Setup.exe
           if-no-files-found: error
 
   release:
@@ -83,18 +98,22 @@ jobs:
           Network Console 2.0 (native Flutter rewrite - Windows preview)
 
           Same measurement backend (the Python agent is unchanged), completely
-          new native UI written in Flutter - no more HTML/WebView2. Unzip and
-          run network_console_app.exe; the local agent starts automatically.
+          new native UI written in Flutter - no more HTML/WebView2.
+
+          - `..._Setup.exe` - regular installer (no admin rights needed, Start
+            Menu + Desktop shortcuts, proper uninstall). Recommended.
+          - `..._portable.zip` - unzip and run network_console_app.exe directly,
+            no install.
 
           This is a preview release: if you don't like it, 1.5.x keeps working
           exactly as before and continues to be updated separately.
           EOF
           )
-          gh release create "$TAG" artifacts/windows-flutter/*.zip \
+          gh release create "$TAG" artifacts/windows-flutter/*.zip artifacts/windows-flutter/*Setup.exe \
             --title "Network Console $TAG (Flutter preview)" \
             --notes "$NOTES" \
             --prerelease \
           || {
-            gh release upload "$TAG" artifacts/windows-flutter/*.zip --clobber
+            gh release upload "$TAG" artifacts/windows-flutter/*.zip artifacts/windows-flutter/*Setup.exe --clobber
             gh release edit "$TAG" --title "Network Console $TAG (Flutter preview)" --notes "$NOTES" --prerelease
           }

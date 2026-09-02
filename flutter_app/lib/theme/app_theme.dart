@@ -21,8 +21,20 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(base.textTheme).apply(bodyColor: c.ink, displayColor: c.ink),
       dividerColor: c.line,
       iconTheme: IconThemeData(color: c.inkFaint),
-      splashFactory: NoSplash.splashFactory,
-      highlightColor: Colors.transparent,
+      hoverColor: c.fillHover,
+      splashColor: c.fillActive,
+      highlightColor: c.fillHover,
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          overlayColor: isDark ? Colors.black.withValues(alpha: .18) : Colors.black.withValues(alpha: .10),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(overlayColor: c.fillHover),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(overlayColor: c.fillHover),
+      ),
     );
   }
 }

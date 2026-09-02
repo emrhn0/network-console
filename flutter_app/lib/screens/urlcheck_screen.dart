@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -110,11 +110,30 @@ class _UrlCheckScreenState extends State<UrlCheckScreen> {
     for (final r in _rows) {
       buf.writeln(r.cells.map((c) => c.contains(',') ? '"${c.replaceAll('"', '""')}"' : c).join(','));
     }
-    final location = await getSaveLocation(suggestedName: 'network-console-urlcheck-${DateTime.now().millisecondsSinceEpoch}.csv');
-    if (location == null) return;
-    final data = Uint8List.fromList(utf8.encode(buf.toString()));
-    final xfile = XFile.fromData(data, mimeType: 'text/csv', name: 'export.csv');
-    await xfile.saveTo(location.path);
+    final suggested = 'network-console-urlcheck-${DateTime.now().millisecondsSinceEpoch}.csv';
+    String? path;
+    try {
+      final location = await getSaveLocation(
+        suggestedName: suggested,
+        acceptedTypeGroups: const [XTypeGroup(label: 'CSV', extensions: ['csv'])],
+      );
+      path = location?.path;
+    } catch (e) {
+      path = null;
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      return;
+    }
+    if (path == null) return; // kullanici iptal etti
+    if (!path.toLowerCase().endsWith('.csv')) path = '$path.csv';
+    try {
+      final file = File(path);
+      await file.writeAsBytes(utf8.encode(buf.toString()), flush: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved to $path'), duration: const Duration(seconds: 3)));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    }
   }
 
   @override
