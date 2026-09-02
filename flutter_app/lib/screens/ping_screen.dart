@@ -28,6 +28,11 @@ class _Target {
   String? resolvedIp;
   bool active = false;
   Timer? timer;
+  // down->up veya up->down gecisinde bir sure input barinin tamamini
+  // vurgulamak icin: "su ana kadar kirmizi/yesil kalsin" bitis zamani.
+  DateTime? flashUntil;
+  bool flashIsUp = false;
+  bool get flashing => flashUntil != null && DateTime.now().isBefore(flashUntil!);
   _Target([String initial = '']) : controller = TextEditingController(text: initial);
   String get host => controller.text.trim();
   void dispose() {
@@ -48,9 +53,11 @@ class _PingScreenState extends State<PingScreen> {
   final List<LogLine> _log = [];
   bool _running = false;
   int _interval = 1000;
+  Timer? _decayTimer; // sadece flash suresi dolunca bari normale dondurmek icin, kisa araliklarla rebuild eder
 
   @override
   void dispose() {
+    _decayTimer?.cancel();
     for (final t in _targets) {
       t.dispose();
     }
@@ -103,9 +110,14 @@ class _PingScreenState extends State<PingScreen> {
     for (final t in hosts) {
       _resolveThenPing(t);
     }
+    _decayTimer?.cancel();
+    _decayTimer = Timer.periodic(const Duration(milliseconds: 400), (_) {
+      if (mounted) setState(() {}); // flash suresi dolan barlari normale dondurur
+    });
   }
 
   void _stop() {
+    _decayTimer?.cancel();
     setState(() {
       _running = false;
       for (final t in _targets) {
@@ -134,6 +146,7 @@ class _PingScreenState extends State<PingScreen> {
     final r = await state.agent.get('/api/ping', {'host': t.host, 'timeout': '2000'});
     if (!mounted) return;
     setState(() {
+      final prevOk = t.lastOk; // gecis (down->up / up->down) tespiti icin, uzerine yazmadan once sakla
       if (r['ok'] == true) {
         final ms = (r['ms'] as num).toDouble();
         t.samples.add(ms);
@@ -151,12 +164,14 @@ class _PingScreenState extends State<PingScreen> {
           t.jitter = sum / (vals.length - 1);
         }
         t.lastOk = true;
+        if (prevOk == false) { t.flashIsUp = true; t.flashUntil = DateTime.now().add(const Duration(seconds: 5)); }
         _log.insert(0, LogLine(LogKind.ok, '${t.host} responded', '${ms.toStringAsFixed(0)} ms · TTL ${t.lastTtl}', _clock()));
       } else {
         t.lost++;
         t.samples.add(null);
         t.lastOk = false;
         t.lastError = friendlyAgentError(r['error']?.toString());
+        if (prevOk == true) { t.flashIsUp = false; t.flashUntil = DateTime.now().add(const Duration(seconds: 10)); }
         _log.insert(0, LogLine(LogKind.err, t.host, r['error']?.toString() ?? 'timeout', _clock()));
       }
       if (_log.length > 150) _log.removeLast();
@@ -279,12 +294,30 @@ class _TargetField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final flashing = target.flashing;
+    final flashColor = target.flashIsUp ? c.ok : c.alarm;
+    // kalici nokta: su anki durum (yesil=cevap veriyor, kirmizi=vermiyor, gri=henuz baslamadi)
+    Color dot = c.inkGhost;
+    if (target.lastOk == true) dot = c.ok;
+    if (target.lastOk == false) dot = c.alarm;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(color: c.bgSink, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.line)),
+      decoration: BoxDecoration(
+        color: flashing ? flashColor.withValues(alpha: .22) : c.bgSink,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: flashing ? flashColor : c.line, width: flashing ? 1.4 : 1),
+      ),
       child: Row(children: [
         Caption(t(lang, 'field.target'), c),
-        const SizedBox(width: 14),
+        const SizedBox(width: 10),
+        if (running || target.lastOk != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Container(width: 8, height: 8, decoration: BoxDecoration(color: dot, shape: BoxShape.circle)),
+          ),
+        const SizedBox(width: 8),
         Expanded(
           child: TextField(
             controller: target.controller,
