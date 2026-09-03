@@ -1090,7 +1090,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/health":
             return self._json({
-                "agent": "ping-konsolu", "version": 4,
+                "agent": "ping-konsolu", "version": 5,
                 "app_version": APP_VERSION,
                 "host": socket.gethostname(),
                 "os": platform.system() + " " + platform.release(),
@@ -1167,6 +1167,15 @@ class Handler(BaseHTTPRequestHandler):
             r = run_vtcheck(url, client_key)
             log(peer, "vtcheck", url, r.get("malicious", r.get("error")))
             return self._json(r)
+
+        if path == "/api/shutdown":
+            # UI, kendi bekledigi minimum surumden eski bir ajan surecini
+            # (orn. bir onceki kurulumdan kalip arka planda calisan) tespit
+            # edince buraya cagirir - taze bir surec baslatabilmek icin
+            # yanit dondurdukten hemen sonra kendini kapatir.
+            log(peer, "shutdown istendi")
+            threading.Timer(0.2, lambda: os._exit(0)).start()
+            return self._json({"ok": True})
 
         if path == "/api/ssh":
             host = arg("host")

@@ -9,6 +9,13 @@ import 'package:path_provider/path_provider.dart';
 /// arka uctaki olcum mantigi (ping/traceroute/dns/...) hic degismez.
 class Agent {
   static const List<int> portRange = [8787, 8788, 8789, 8790, 8791, 8792, 8793, 8794, 8795, 8796];
+  // ping-agent.py /api/health icindeki "version" alaniyla eslesir - agent
+  // yeni /api/... rotalari eklediginde burada da artirilir. Kullanicinin
+  // makinesinde bir onceki kurulumdan kalip arka planda calismaya devam
+  // eden ESKI bir ajan sureci varsa (upgrade sirasinda kapanmadiysa), UI
+  // onu direkt yeniden kullanmak yerine kapatip taze bir surec baslatir -
+  // yoksa yeni eklenen uc noktalar (orn. /api/ssh) "not found" doner.
+  static const int kMinAgentVersion = 5;
   int? port;
   Map<String, dynamic>? lastHealth;
 
@@ -98,7 +105,19 @@ class Agent {
     final p = await _pickPort();
     port = p;
     await _savePort(p);
-    if (await _probe(p)) return true;
+    if (await _probe(p)) {
+      final runningVersion = (lastHealth?['version'] as num?)?.toInt() ?? 0;
+      if (runningVersion >= kMinAgentVersion) return true;
+      // eski surumlu bir ajan calisiyor - kapat ve asagida taze baslat
+      try {
+        await http.get(Uri.parse('http://127.0.0.1:$p/api/shutdown')).timeout(const Duration(seconds: 2));
+      } catch (_) {}
+      final freedDeadline = DateTime.now().add(const Duration(seconds: 5));
+      while (DateTime.now().isBefore(freedDeadline)) {
+        if (!await _probe(p, timeoutMs: 300)) break;
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+    }
 
     final bin = _agentBinary();
     try {
