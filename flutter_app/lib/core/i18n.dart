@@ -9,8 +9,13 @@ const Map<String, List<String>> _strings = {
   'nav.sweep': ['IP Scan', 'IP Tarama'],
   'nav.subnet': ['Subnet', 'Alt Ağ'],
   'nav.urlcheck': ['URL Check', 'URL Kontrol'],
+  'nav.snmp': ['SNMP', 'SNMP'],
+  'nav.wol': ['Wake-on-LAN', 'Wake-on-LAN'],
   'nav.settings': ['Settings', 'Ayarlar'],
   'nav.dashboard': ['Dashboard', 'Panel'],
+
+  'nav.group.diagnostics': ['Diagnostics', 'Tanılama'],
+  'nav.group.advanced': ['Advanced', 'Gelişmiş'],
 
   'desc.ping': ['Continuous reachability measurement', 'Sürekli erişilebilirlik ölçümü'],
   'desc.trace': ['Hop-by-hop route and latency (MTR)', 'Adım adım rota ve gecikme'],
@@ -22,6 +27,8 @@ const Map<String, List<String>> _strings = {
   'desc.subnet': ['CIDR calculation and VLSM split', 'CIDR hesaplama ve VLSM bölme'],
   'desc.urlcheck': ['URL reputation check via VirusTotal', 'VirusTotal ile URL itibar kontrolü'],
   'desc.settings': ['VirusTotal key, theme, language, agent', 'VirusTotal anahtarı, tema, dil, ajan'],
+  'desc.snmp': ['Read system info from a switch/router/firewall', 'Switch/router/firewall sistem bilgisini oku'],
+  'desc.wol': ['Wake a device remotely with a magic packet', 'Bir cihazı magic packet ile uzaktan uyandır'],
 
   'action.check': ['Check', 'Kontrol Et'],
   'action.start': ['Start', 'Başlat'],

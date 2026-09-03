@@ -5,7 +5,7 @@
 ; ile PAYLOAD_DIR degiskeninde saglanir; yerel test icin varsayilan yol
 ; asagida.
 #ifndef MyAppVersion
-  #define MyAppVersion "2.4.0"
+  #define MyAppVersion "2.5.0"
 #endif
 #ifndef PayloadDir
   #define PayloadDir "..\build\windows\x64\runner\Release"

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../core/app_state.dart';
 import '../core/constants.dart';
+import '../core/i18n.dart';
 import '../core/nav.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_colors.dart';
@@ -17,6 +18,8 @@ import 'http_screen.dart';
 import 'sweep_screen.dart';
 import 'subnet_screen.dart';
 import 'urlcheck_screen.dart';
+import 'snmp_screen.dart';
+import 'wol_screen.dart';
 import 'settings_screen.dart';
 
 class AppShell extends StatefulWidget {
@@ -26,7 +29,8 @@ class AppShell extends StatefulWidget {
 }
 
 const List<String> _viewOrder = [
-  'dashboard', 'ping', 'trace', 'telnet', 'dns', 'cert', 'http', 'sweep', 'subnet', 'urlcheck', 'settings',
+  'dashboard', 'ping', 'trace', 'telnet', 'dns', 'cert', 'http', 'sweep', 'subnet', 'urlcheck',
+  'snmp', 'wol', 'settings',
 ];
 
 class _AppShellState extends State<AppShell> {
@@ -51,6 +55,8 @@ class _AppShellState extends State<AppShell> {
         const SweepScreen(),
         const SubnetScreen(),
         const UrlCheckScreen(),
+        const SnmpScreen(),
+        const WolScreen(),
         const SettingsScreen(),
       ];
 
@@ -88,18 +94,33 @@ class _AppShellState extends State<AppShell> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 10),
-                children: kTools.asMap().entries.map((e) {
-                  final item = e.value;
-                  final active = _view == item.key;
-                  return _NavRow(
-                    icon: item.icon,
-                    label: item.label,
-                    number: (e.key + 1).toString().padLeft(2, '0'),
-                    active: active,
-                    c: c,
-                    onTap: () => _go(item.key),
-                  );
-                }).toList(),
+                children: [
+                  _GroupLabel(t(state.lang, 'nav.group.diagnostics'), c),
+                  ...kTools.asMap().entries.map((e) {
+                    final item = e.value;
+                    return _NavRow(
+                      icon: item.icon,
+                      label: item.label,
+                      number: (e.key + 1).toString().padLeft(2, '0'),
+                      active: _view == item.key,
+                      c: c,
+                      onTap: () => _go(item.key),
+                    );
+                  }),
+                  const SizedBox(height: 14),
+                  _GroupLabel(t(state.lang, 'nav.group.advanced'), c),
+                  ...kAdvancedTools.asMap().entries.map((e) {
+                    final item = e.value;
+                    return _NavRow(
+                      icon: item.icon,
+                      label: item.label,
+                      number: (kTools.length + e.key + 1).toString().padLeft(2, '0'),
+                      active: _view == item.key,
+                      c: c,
+                      onTap: () => _go(item.key),
+                    );
+                  }),
+                ],
               ),
             ),
             Container(
@@ -136,6 +157,17 @@ class _AppShellState extends State<AppShell> {
       ]),
     );
   }
+}
+
+class _GroupLabel extends StatelessWidget {
+  final String text;
+  final AppColors c;
+  const _GroupLabel(this.text, this.c);
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+        child: Text(text.toUpperCase(), style: GoogleFonts.spaceMono(fontSize: 9.5, letterSpacing: 1.2, color: c.inkGhost, fontWeight: FontWeight.w600)),
+      );
 }
 
 /// Fare uzerine gelince hafif arka plan/renk degisimi gosteren genel sarmalayici.

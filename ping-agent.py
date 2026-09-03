@@ -109,7 +109,8 @@ PING_SWEEP_POOL = 16   # sadece belgeleme amacli - gercek havuz tarayicida (JS)
 APP_VERSION = "1.5.7"
 
 PROBE_PATHS = ("/api/health", "/api/ping", "/api/tcp", "/api/resolve",
-               "/api/traceroute", "/api/dns", "/api/cert", "/api/http", "/api/vtcheck")
+               "/api/traceroute", "/api/dns", "/api/cert", "/api/http", "/api/vtcheck",
+               "/api/snmp", "/api/wol")
 
 DNS_TYPES = {"A": 1, "NS": 2, "CNAME": 5, "SOA": 6, "PTR": 12, "MX": 15, "TXT": 16, "AAAA": 28}
 DNS_TYPES_REV = {v: k for k, v in DNS_TYPES.items()}
@@ -834,6 +835,169 @@ def run_vtcheck(url, client_key=None):
     }
 
 
+def run_wol(mac, broadcast="255.255.255.255", port=9):
+    mac_clean = re.sub(r"[^0-9A-Fa-f]", "", mac or "")
+    if len(mac_clean) != 12:
+        return {"ok": False, "error": "gecersiz MAC adresi"}
+    try:
+        mac_bytes = bytes.fromhex(mac_clean)
+    except ValueError:
+        return {"ok": False, "error": "gecersiz MAC adresi"}
+    packet = b"\xff" * 6 + mac_bytes * 16
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.sendto(packet, (broadcast or "255.255.255.255", port))
+        sock.close()
+    except OSError as e:
+        return {"ok": False, "error": str(e)}
+    return {"ok": True, "mac": ":".join(mac_clean[i:i + 2] for i in range(0, 12, 2)).upper()}
+
+
+# -- SNMP (v1/v2c GET) - pysnmp gibi agir bagimliliklara girmeden, sadece
+# birkac standart sistem OID'sini okumak icin minimal el yapimi BER
+# kodlayici/cozucu. GetRequest-PDU (0xA0) gonderir, GetResponse (0xA2) okur.
+def _snmp_ber_len(n):
+    if n < 0x80:
+        return bytes([n])
+    b = []
+    while n:
+        b.insert(0, n & 0xFF)
+        n >>= 8
+    return bytes([0x80 | len(b)]) + bytes(b)
+
+
+def _snmp_tlv(tag, value):
+    return bytes([tag]) + _snmp_ber_len(len(value)) + value
+
+
+def _snmp_int(n):
+    if n == 0:
+        body = b"\x00"
+    else:
+        nbytes = (n.bit_length() + 7) // 8 or 1
+        body = n.to_bytes(nbytes, "big", signed=False)
+        if body[0] & 0x80:
+            body = b"\x00" + body
+    return _snmp_tlv(0x02, body)
+
+
+def _snmp_oid(oid_str):
+    parts = [int(x) for x in oid_str.strip(".").split(".")]
+    body = bytes([parts[0] * 40 + parts[1]])
+    for p in parts[2:]:
+        if p < 128:
+            body += bytes([p])
+        else:
+            chunks = []
+            while p:
+                chunks.insert(0, p & 0x7F)
+                p >>= 7
+            for i in range(len(chunks) - 1):
+                chunks[i] |= 0x80
+            body += bytes(chunks)
+    return _snmp_tlv(0x06, body)
+
+
+def _snmp_build_get(community, oids, request_id=1, version=1):
+    varbinds = b"".join(_snmp_tlv(0x30, _snmp_oid(o) + _snmp_tlv(0x05, b"")) for o in oids)
+    pdu_body = _snmp_int(request_id) + _snmp_int(0) + _snmp_int(0) + _snmp_tlv(0x30, varbinds)
+    pdu = _snmp_tlv(0xA0, pdu_body)
+    message = _snmp_int(version) + _snmp_tlv(0x04, community.encode("utf-8")) + pdu
+    return _snmp_tlv(0x30, message)
+
+
+def _snmp_parse_tlv(data, pos):
+    tag = data[pos]
+    ln = data[pos + 1]
+    pos += 2
+    if ln & 0x80:
+        nbytes = ln & 0x7F
+        ln = int.from_bytes(data[pos:pos + nbytes], "big")
+        pos += nbytes
+    value = data[pos:pos + ln]
+    return tag, value, pos + ln
+
+
+def _snmp_decode_value(tag, value):
+    if tag == 0x02:  # INTEGER
+        return int.from_bytes(value, "big", signed=True) if value else 0
+    if tag in (0x04, 0x40):  # OCTET STRING / IpAddress
+        if tag == 0x40 and len(value) == 4:
+            return ".".join(str(b) for b in value)
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return value.decode("latin-1", errors="replace")
+    if tag == 0x43:  # TimeTicks (1/100 s)
+        n = int.from_bytes(value, "big", signed=False)
+        secs = n // 100
+        d, rem = divmod(secs, 86400)
+        h, rem = divmod(rem, 3600)
+        m, s = divmod(rem, 60)
+        parts = ([f"{d}g"] if d else []) + [f"{h:02d}:{m:02d}:{s:02d}"]
+        return " ".join(parts)
+    if tag in (0x41, 0x42, 0x46):  # Counter32 / Gauge32 / Counter64
+        return int.from_bytes(value, "big", signed=False)
+    if tag == 0x05:  # NULL
+        return None
+    return value.hex()
+
+
+def run_snmp(host, community="public", timeout_ms=2000, port=161):
+    oids = {
+        "sysDescr": "1.3.6.1.2.1.1.1.0",
+        "sysUpTime": "1.3.6.1.2.1.1.3.0",
+        "sysName": "1.3.6.1.2.1.1.5.0",
+        "sysContact": "1.3.6.1.2.1.1.4.0",
+        "sysLocation": "1.3.6.1.2.1.1.6.0",
+    }
+    if not host:
+        return {"ok": False, "error": "gecersiz hedef"}
+    request = _snmp_build_get(community or "public", list(oids.values()))
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(timeout_ms / 1000)
+        sock.sendto(request, (host, port))
+        data, _ = sock.recvfrom(4096)
+        sock.close()
+    except socket.timeout:
+        return {"ok": False, "error": "zaman asimi - cihaz SNMP'ye yanit vermiyor (community adi yanlis olabilir)"}
+    except OSError as e:
+        return {"ok": False, "error": str(e)}
+
+    try:
+        _, msg, _ = _snmp_parse_tlv(data, 0)
+        pos = 0
+        _, _, pos = _snmp_parse_tlv(msg, pos)  # version
+        _, _, pos = _snmp_parse_tlv(msg, pos)  # community
+        pdu_tag, pdu_body, _ = _snmp_parse_tlv(msg, pos)
+        if pdu_tag != 0xA2:
+            return {"ok": False, "error": "beklenmeyen SNMP yaniti"}
+        p = 0
+        _, _, p = _snmp_parse_tlv(pdu_body, p)  # request-id
+        _, err_status_raw, p = _snmp_parse_tlv(pdu_body, p)
+        err_status = _snmp_decode_value(0x02, err_status_raw)
+        _, _, p = _snmp_parse_tlv(pdu_body, p)  # error-index
+        vbl_tag, vbl_body, p = _snmp_parse_tlv(pdu_body, p)
+        if err_status:
+            return {"ok": False, "error": "SNMP hatasi (kod %s) - community adi veya OID destegi olmayabilir" % err_status}
+        values = []
+        vp = 0
+        while vp < len(vbl_body):
+            vb_tag, vb_body, vp = _snmp_parse_tlv(vbl_body, vp)
+            ip = 0
+            _, _, ip = _snmp_parse_tlv(vb_body, ip)  # oid (atlanir, sira ile eslesir)
+            val_tag, val_raw, ip = _snmp_parse_tlv(vb_body, ip)
+            values.append(_snmp_decode_value(val_tag, val_raw))
+        result = {"ok": True}
+        for key, val in zip(oids.keys(), values):
+            result[key] = val
+        return result
+    except (IndexError, ValueError) as e:
+        return {"ok": False, "error": "SNMP yaniti cozumlenemedi: %s" % e}
+
+
 # -- HTTP sunucu ------------------------------------------------------
 class Handler(BaseHTTPRequestHandler):
     server_version = "NetworkConsole/4.0"
@@ -972,6 +1136,20 @@ class Handler(BaseHTTPRequestHandler):
             client_key = self.headers.get("X-VT-Key", "").strip()
             r = run_vtcheck(url, client_key)
             log(peer, "vtcheck", url, r.get("malicious", r.get("error")))
+            return self._json(r)
+
+        if path == "/api/snmp":
+            host = arg("host")
+            community = arg("community", "public")
+            r = run_snmp(host, community, num("timeout", 2000, 500, 8000), num("port", 161, 1, 65535))
+            log(peer, "snmp", host, r.get("sysName", r.get("error")))
+            return self._json(r)
+
+        if path == "/api/wol":
+            mac = arg("mac")
+            broadcast = arg("broadcast", "255.255.255.255")
+            r = run_wol(mac, broadcast, num("port", 9, 1, 65535))
+            log(peer, "wol", mac, r.get("ok"))
             return self._json(r)
 
         if path == "/manifest.webmanifest":

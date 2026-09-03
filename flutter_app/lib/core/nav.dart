@@ -21,8 +21,15 @@ const List<NavItem> kTools = [
   NavItem('urlcheck', 'URL Check', Icons.search),
 ];
 
+/// Ileri seviye/az kullanilan araclar - sidebar'da ayri bir grupta gosterilir.
+const List<NavItem> kAdvancedTools = [
+  NavItem('snmp', 'SNMP', Icons.router),
+  NavItem('wol', 'Wake-on-LAN', Icons.power_settings_new),
+];
+
 const Map<String, String> kToolLabel = {
   'ping': 'Ping', 'trace': 'Trace', 'telnet': 'Telnet', 'dns': 'DNS',
   'cert': 'Certificate', 'http': 'HTTP', 'sweep': 'IP Scan', 'subnet': 'Subnet',
-  'urlcheck': 'URL Check', 'settings': 'Settings', 'dashboard': 'Dashboard',
+  'urlcheck': 'URL Check', 'snmp': 'SNMP', 'wol': 'Wake-on-LAN',
+  'settings': 'Settings', 'dashboard': 'Dashboard',
 };
