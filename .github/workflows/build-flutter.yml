@@ -143,6 +143,11 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
@@ -152,11 +157,26 @@ jobs:
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           ls -la artifacts/*/
+
+          # onceki v2.*.* etiketine gore degisiklik listesi (yoksa ilk surum notu)
+          PREV_TAG=$(git tag --list 'v2.*.*' --sort=-v:refname | grep -v "^${TAG}\$" | head -n1)
+          if [ -n "$PREV_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:'- %s' "${PREV_TAG}..${TAG}" -- . ':(exclude)flutter_app/pubspec.yaml' ':(exclude)flutter_app/lib/core/constants.dart' ':(exclude)flutter_app/windows/installer.iss' | grep -v '^- Merge ' || true)
+            [ -z "$CHANGELOG" ] && CHANGELOG="- (see commit history)"
+            CHANGELOG_HEADER="## What's changed since ${PREV_TAG}"
+          else
+            CHANGELOG="- Initial Flutter rewrite release"
+            CHANGELOG_HEADER="## What's changed"
+          fi
+
           NOTES=$(cat <<EOF
           Network Console ${VERSION} (native Flutter rewrite)
 
           Same measurement backend (the Python agent is unchanged), native UI
           written in Flutter - no more HTML/WebView2.
+
+          ${CHANGELOG_HEADER}
+          ${CHANGELOG}
 
           ## Windows
           - \`..._Setup.exe\` - regular installer (no admin rights needed, Start
@@ -176,7 +196,7 @@ jobs:
 
           This app lives on its own line (\`flutter-v2\` branch): if you don't
           like it, 1.5.x keeps working exactly as before, unaffected, on the
-          \`master\` branch / [v1.5.7 release](../../releases/tag/v1.5.7).
+          [\`master\` branch](../../tree/master).
           EOF
           )
           gh release create "$TAG" artifacts/windows-flutter/*.zip artifacts/windows-flutter/*Setup.exe artifacts/macos-flutter/*.zip \
@@ -186,3 +206,16 @@ jobs:
             gh release upload "$TAG" artifacts/windows-flutter/*.zip artifacts/windows-flutter/*Setup.exe artifacts/macos-flutter/*.zip --clobber
             gh release edit "$TAG" --title "Network Console $TAG" --notes "$NOTES"
           }
+
+      - name: Prune old releases (keep latest 2)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release list --json tagName,publishedAt,isDraft \
+            --jq '[.[] | select(.isDraft == false) | select(.tagName | test("^v2\\."))] | sort_by(.publishedAt) | reverse | .[2:] | .[].tagName' \
+          | while read -r old; do
+              echo "deleting old release $old"
+              gh release delete "$old" --yes || true
+            done

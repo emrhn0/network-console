@@ -18,6 +18,7 @@ import 'http_screen.dart';
 import 'sweep_screen.dart';
 import 'subnet_screen.dart';
 import 'urlcheck_screen.dart';
+import 'ssh_screen.dart';
 import 'snmp_screen.dart';
 import 'wol_screen.dart';
 import 'settings_screen.dart';
@@ -30,7 +31,7 @@ class AppShell extends StatefulWidget {
 
 const List<String> _viewOrder = [
   'dashboard', 'ping', 'trace', 'telnet', 'dns', 'cert', 'http', 'sweep', 'subnet', 'urlcheck',
-  'snmp', 'wol', 'settings',
+  'ssh', 'snmp', 'wol', 'settings',
 ];
 
 class _AppShellState extends State<AppShell> {
@@ -55,6 +56,7 @@ class _AppShellState extends State<AppShell> {
         const SweepScreen(),
         const SubnetScreen(),
         const UrlCheckScreen(),
+        const SshScreen(),
         const SnmpScreen(),
         const WolScreen(),
         const SettingsScreen(),

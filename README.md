@@ -14,8 +14,8 @@ desktop app** (`flutter_app/`). It talks to the same local measurement agent
 
 The original HTML/WebView2-based app is still available and untouched:
 
-- Branch: [`master`](../../tree/master)
-- Last release: [v1.5.7](../../releases/tag/v1.5.7)
+- Branch: [`master`](../../tree/master) — build it yourself from source, or check that
+  branch's own release workflow for the latest packaged installer.
 
 It's kept around on purpose in case the Flutter rewrite doesn't work out for you — nothing
 from it was deleted or modified.

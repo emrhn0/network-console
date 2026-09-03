@@ -9,6 +9,7 @@ const Map<String, List<String>> _strings = {
   'nav.sweep': ['IP Scan', 'IP Tarama'],
   'nav.subnet': ['Subnet', 'Alt Ağ'],
   'nav.urlcheck': ['URL Check', 'URL Kontrol'],
+  'nav.ssh': ['SSH', 'SSH'],
   'nav.snmp': ['SNMP', 'SNMP'],
   'nav.wol': ['Wake-on-LAN', 'Wake-on-LAN'],
   'nav.settings': ['Settings', 'Ayarlar'],
@@ -27,6 +28,7 @@ const Map<String, List<String>> _strings = {
   'desc.subnet': ['CIDR calculation and VLSM split', 'CIDR hesaplama ve VLSM bölme'],
   'desc.urlcheck': ['URL reputation check via VirusTotal', 'VirusTotal ile URL itibar kontrolü'],
   'desc.settings': ['VirusTotal key, theme, language, agent', 'VirusTotal anahtarı, tema, dil, ajan'],
+  'desc.ssh': ['SSH banner/reachability probe', 'SSH banner/erişilebilirlik testi'],
   'desc.snmp': ['Read system info from a switch/router/firewall', 'Switch/router/firewall sistem bilgisini oku'],
   'desc.wol': ['Wake a device remotely with a magic packet', 'Bir cihazı magic packet ile uzaktan uyandır'],
 

@@ -110,7 +110,7 @@ APP_VERSION = "1.5.7"
 
 PROBE_PATHS = ("/api/health", "/api/ping", "/api/tcp", "/api/resolve",
                "/api/traceroute", "/api/dns", "/api/cert", "/api/http", "/api/vtcheck",
-               "/api/snmp", "/api/wol")
+               "/api/snmp", "/api/wol", "/api/ssh")
 
 DNS_TYPES = {"A": 1, "NS": 2, "CNAME": 5, "SOA": 6, "PTR": 12, "MX": 15, "TXT": 16, "AAAA": 28}
 DNS_TYPES_REV = {v: k for k, v in DNS_TYPES.items()}
@@ -835,6 +835,36 @@ def run_vtcheck(url, client_key=None):
     }
 
 
+def run_ssh_probe(host, port=22, timeout_ms=3000):
+    # Tam kimlik dogrulamali SSH oturumu acmiyoruz (paramiko/crypto gerekir,
+    # diger araclarin hicbirinde kalici/karmasik bagimlilik yok) - bunun
+    # yerine Telnet aracindaki gibi: baglan + sunucunun ilk banner satirini
+    # oku (orn. "SSH-2.0-OpenSSH_9.6"), erisilebilirlik + surum bilgisi verir.
+    if not host:
+        return {"ok": False, "error": "gecersiz hedef"}
+    start = time.time()
+    try:
+        sock = socket.create_connection((host, port), timeout=timeout_ms / 1000)
+        sock.settimeout(timeout_ms / 1000)
+        banner = b""
+        try:
+            while b"\n" not in banner and len(banner) < 256:
+                chunk = sock.recv(256)
+                if not chunk:
+                    break
+                banner += chunk
+        except (socket.timeout, TimeoutError):
+            pass
+        ms = round((time.time() - start) * 1000)
+        sock.close()
+        text = banner.decode("utf-8", errors="replace").strip()
+        return {"ok": True, "ms": ms, "banner": text, "is_ssh": text.startswith("SSH-")}
+    except (socket.timeout, TimeoutError):
+        return {"ok": False, "error": "zaman asimi"}
+    except OSError as e:
+        return {"ok": False, "error": str(e)}
+
+
 def run_wol(mac, broadcast="255.255.255.255", port=9):
     mac_clean = re.sub(r"[^0-9A-Fa-f]", "", mac or "")
     if len(mac_clean) != 12:
@@ -1136,6 +1166,12 @@ class Handler(BaseHTTPRequestHandler):
             client_key = self.headers.get("X-VT-Key", "").strip()
             r = run_vtcheck(url, client_key)
             log(peer, "vtcheck", url, r.get("malicious", r.get("error")))
+            return self._json(r)
+
+        if path == "/api/ssh":
+            host = arg("host")
+            r = run_ssh_probe(host, num("port", 22, 1, 65535), num("timeout", 3000, 500, 10000))
+            log(peer, "ssh", host, r.get("banner", r.get("error")))
             return self._json(r)
 
         if path == "/api/snmp":
