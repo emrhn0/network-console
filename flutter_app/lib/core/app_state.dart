@@ -20,11 +20,19 @@ class AppState extends ChangeNotifier {
   final List<HistoryEntry> history = [];
   DateTime sessionStart = DateTime.now();
 
+  // Daha once SSH'la baglanilmis host'lar (en yeni basta). shared_preferences
+  // uzerinden %APPDATA% altinda saklanir - {app} kurulum klasorunun disinda
+  // oldugu icin bir surum yukseltmesinde/yeniden kurulumda SILINMEZ (bkz.
+  // installer.iss [InstallDelete]: sadece {app} temizlenir, kullanici
+  // verisine dokunulmaz). Ayni mekanizma isDark/lang/vtKey icin de gecerli.
+  List<String> sshHosts = [];
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     isDark = _prefs?.getBool('nc-dark') ?? false;
     lang = _prefs?.getString('nc-lang') ?? 'en';
     vtKey = _prefs?.getString('nc-vt-key') ?? '';
+    sshHosts = _prefs?.getStringList('nc-ssh-hosts') ?? [];
     notifyListeners();
 
     final ok = await agent.ensureRunning();
@@ -70,6 +78,22 @@ class AppState extends ChangeNotifier {
   void logHistory(String view, String summary) {
     history.insert(0, HistoryEntry(view, summary, DateTime.now()));
     if (history.length > 40) history.removeLast();
+    notifyListeners();
+  }
+
+  void addSshHost(String host) {
+    final h = host.trim();
+    if (h.isEmpty) return;
+    sshHosts.remove(h);
+    sshHosts.insert(0, h);
+    if (sshHosts.length > 20) sshHosts.removeRange(20, sshHosts.length);
+    _prefs?.setStringList('nc-ssh-hosts', sshHosts);
+    notifyListeners();
+  }
+
+  void removeSshHost(String host) {
+    sshHosts.remove(host);
+    _prefs?.setStringList('nc-ssh-hosts', sshHosts);
     notifyListeners();
   }
 }

@@ -34,7 +34,10 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    # console=False: Flutter kabugu baslarken artik bir siyah cmd penceresi
+    # acilmiyor. ping-agent.py zaten frozen+stdout None durumunu isliyor
+    # (network-console-agent.log'a yazar), bu yuzden guvenli.
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

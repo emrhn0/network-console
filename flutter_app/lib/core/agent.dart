@@ -174,7 +174,19 @@ class Agent {
     return false;
   }
 
-  Future<Map<String, dynamic>> get(String path, [Map<String, String>? params, Duration? timeout]) async {
+  Future<bool>? _reconnecting;
+
+  Future<Map<String, dynamic>> get(String path, [Map<String, String>? params, Duration? timeout, bool _retry = true]) async {
+    // Sogumus baslangic (AV taramasi/yavas disk yuzunden ensureRunning'in ilk
+    // 10sn'lik penceresini kacirmis olabilir) ya da ajan araya girip cokmus
+    // olabilir: her istek sonrasi degil ama port hic bulunamamissa ya da bu
+    // istek basarisiz olmussa, kullanicinin bir daha "Check"e basmasini
+    // beklemeden burada bir kere kendimiz toparlanmayi deneriz. Ayni anda
+    // birden fazla ekran ayni sorunu yasarsa tek bir ensureRunning calismasi
+    // paylasilir (_reconnecting).
+    if (port == null) {
+      await (_reconnecting ??= ensureRunning().whenComplete(() => _reconnecting = null));
+    }
     try {
       final uri = Uri.parse('$base$path').replace(queryParameters: params);
       // traceroute butcesi agent tarafinda maxhops*3*timeout+10s'ye kadar
@@ -185,6 +197,10 @@ class Agent {
       final r = await http.get(uri).timeout(effective);
       return jsonDecode(r.body) as Map<String, dynamic>;
     } catch (e) {
+      if (_retry) {
+        final reconnected = await (_reconnecting ??= ensureRunning().whenComplete(() => _reconnecting = null));
+        if (reconnected) return get(path, params, timeout, false);
+      }
       return {'ok': false, 'error': 'agent unreachable'};
     }
   }
