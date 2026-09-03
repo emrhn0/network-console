@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:dartssh2/dartssh2.dart';
@@ -16,7 +17,7 @@ import '../widgets/common.dart';
 /// gorunen degisir (bkz. _SshScreenState.build, IndexedStack benzeri).
 class _SshSession {
   final String id;
-  final String label;
+  String label;
   SSHClient? client;
   SSHSession? shell;
   final Terminal terminal = Terminal(maxLines: 8000);
@@ -80,13 +81,50 @@ class _SshScreenState extends State<SshScreen> {
     return s.isEmpty ? 'connection failed' : s;
   }
 
+  /// PuTTY'nin yaptigi gibi: prompt'u terminale yazar, kullanici Enter'a
+  /// basana kadar tusladigi karakterleri (kendimiz yerel olarak yankilayarak)
+  /// toplar. echo=false ise sifre alaninda oldugu gibi hicbir sey basmaz.
+  /// Bu, host haric her sey bos birakildiginda "sadece IP yaz, geri kalanini
+  /// terminalden gir" akisini saglar - kimlik bilgisi formda YOKSA burada
+  /// devreye girer.
+  Future<String> _promptLine(Terminal term, String prompt, {bool echo = true}) {
+    term.write(prompt);
+    final completer = Completer<String>();
+    final buf = StringBuffer();
+    term.onOutput = (data) {
+      if (completer.isCompleted) return;
+      for (final code in data.runes) {
+        if (code == 13 || code == 10) {
+          term.write('\r\n');
+          completer.complete(buf.toString());
+          return;
+        } else if (code == 127 || code == 8) {
+          if (buf.isNotEmpty) {
+            final s = buf.toString().substring(0, buf.length - 1);
+            buf.clear();
+            buf.write(s);
+            if (echo) term.write('\b \b');
+          }
+        } else if (code == 3) {
+          completer.completeError(Exception('cancelled'));
+          return;
+        } else if (code >= 32) {
+          buf.writeCharCode(code);
+          if (echo) term.write(String.fromCharCode(code));
+        }
+      }
+    };
+    return completer.future;
+  }
+
   Future<void> _connect() async {
     final host = _host.text.trim();
     if (host.isEmpty) return;
     final state = context.read<AppState>();
     final port = int.tryParse(_port.text.trim()) ?? 22;
-    final username = _user.text.trim();
-    final password = _pass.text;
+    var username = _user.text.trim();
+    var password = _pass.text;
+    final rememberChecked = _remember;
 
     final id = '${DateTime.now().microsecondsSinceEpoch}';
     final session = _SshSession(id: id, label: username.isEmpty ? host : '$username@$host');
@@ -96,13 +134,27 @@ class _SshScreenState extends State<SshScreen> {
     // baglanmak/duzenlemek kolay olsun diye) - sadece sifreyi ekrandan siliyoruz.
     _pass.clear();
 
-    final profile = await state.saveSshProfile(host: host, port: port, username: username, password: _remember ? password : null);
-
     try {
       final socket = await SSHSocket.connect(host, port, timeout: const Duration(seconds: 12));
+      if (!mounted || !_sessions.contains(session)) return;
+      // Soket kuruldu - terminali goster, PuTTY tarzi "login as:"/"password:"
+      // sadece formda eksik olan alan(lar) icin sorulur.
+      setState(() => session.connecting = false);
+
+      if (username.isEmpty) {
+        username = (await _promptLine(session.terminal, 'login as: ')).trim();
+        if (!mounted || !_sessions.contains(session)) return;
+        if (username.isEmpty) throw Exception('login cancelled');
+        setState(() => session.label = '$username@$host');
+      }
+      if (password.isEmpty) {
+        password = await _promptLine(session.terminal, '$username@$host\'s password: ', echo: false);
+        if (!mounted || !_sessions.contains(session)) return;
+      }
+
       final client = SSHClient(
         socket,
-        username: username.isEmpty ? 'root' : username,
+        username: username,
         onPasswordRequest: () => password,
       );
       session.client = client;
@@ -118,16 +170,17 @@ class _SshScreenState extends State<SshScreen> {
       });
 
       if (!mounted) return;
-      setState(() => session.connecting = false);
+      // Basarili giristen SONRA kaydediyoruz - boylece terminalden girilen
+      // kullanici adi/sifre de (form bos birakilmis olsa bile) "Remember"
+      // isaretliyse kaydedilir.
+      if (rememberChecked) {
+        await state.saveSshProfile(host: host, port: port, username: username, password: password);
+      } else {
+        await state.saveSshProfile(host: host, port: port, username: username);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() { session.connecting = false; session.error = _friendlySshError(e); });
-      // Basarisiz denemede olasi yanlis sifreyi saklı tutmuyoruz - profili
-      // (host/port/kullanici) sifresiz halde birakiyoruz.
-      if (_remember && password.isNotEmpty) {
-        await state.removeSshProfile(profile.id);
-        await state.saveSshProfile(host: host, port: port, username: username);
-      }
     }
   }
 
