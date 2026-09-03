@@ -216,99 +216,144 @@ class _SshScreenState extends State<SshScreen> {
     final active = _sessions.where((s) => s.id == _activeId).toList();
     final activeSession = active.isEmpty ? null : active.first;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(26, 26, 26, 16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(flex: 3, child: LabeledField(label: t(state.lang, 'field.host'), controller: _host, c: c, hint: '192.168.1.1', onSubmitted: (_) => _connect())),
-          const SizedBox(width: 10),
-          Expanded(child: LabeledField(label: t(state.lang, 'field.port'), controller: _port, c: c, hint: '22')),
-          const SizedBox(width: 10),
-          Expanded(flex: 2, child: LabeledField(label: t(state.lang, 'field.username'), controller: _user, c: c, hint: t(state.lang, 'ssh.usernameHint'))),
-          const SizedBox(width: 10),
-          Expanded(flex: 2, child: LabeledField(label: t(state.lang, 'field.password'), controller: _pass, c: c, obscure: true, onSubmitted: (_) => _connect())),
-        ]),
-        const SizedBox(height: 10),
-        Row(children: [
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              onTap: () => setState(() => _remember = !_remember),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Checkbox(value: _remember, onChanged: (v) => setState(() => _remember = v ?? false), activeColor: c.accent, visualDensity: VisualDensity.compact),
-                Text(t(state.lang, 'ssh.remember'), style: TextStyle(color: c.inkSoft, fontSize: 12.5)),
-              ]),
+    // mRemoteNG duzeni: solda dar/sabit bir "baglantilar" paneli (yeni
+    // baglanti formu + kayitli liste), sagda TAMAMEN CLI - sekmeler ve
+    // altinda mumkun oldugunca genis/yuksek terminal.
+    return Row(children: [
+      Container(
+        width: 300,
+        padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
+        decoration: BoxDecoration(border: Border(right: BorderSide(color: c.lineSoft))),
+        child: SingleChildScrollView(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Caption(t(state.lang, 'ssh.newTab'), c),
+            const SizedBox(height: 12),
+            LabeledField(label: t(state.lang, 'field.host'), controller: _host, c: c, hint: '192.168.1.1', onSubmitted: (_) => _connect()),
+            const SizedBox(height: 8),
+            LabeledField(label: t(state.lang, 'field.port'), controller: _port, c: c, hint: '22'),
+            const SizedBox(height: 8),
+            LabeledField(label: t(state.lang, 'field.username'), controller: _user, c: c, hint: t(state.lang, 'ssh.usernameHint')),
+            const SizedBox(height: 8),
+            LabeledField(label: t(state.lang, 'field.password'), controller: _pass, c: c, obscure: true, onSubmitted: (_) => _connect()),
+            const SizedBox(height: 10),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => setState(() => _remember = !_remember),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Checkbox(value: _remember, onChanged: (v) => setState(() => _remember = v ?? false), activeColor: c.accent, visualDensity: VisualDensity.compact),
+                  Text(t(state.lang, 'ssh.remember'), style: TextStyle(color: c.inkSoft, fontSize: 12.5)),
+                ]),
+              ),
             ),
-          ),
-          const Spacer(),
-          GhostButton(label: t(state.lang, 'action.check'), c: c, onPressed: _checking ? null : _check),
-          const SizedBox(width: 10),
-          PrimaryButton(label: t(state.lang, 'action.connect'), c: c, onPressed: _connect),
-        ]),
-        if (state.sshProfiles.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-            Caption(t(state.lang, 'ssh.recent'), c),
-            for (final p in state.sshProfiles)
-              GhostButton(
-                label: p.label,
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: PrimaryButton(label: t(state.lang, 'action.connect'), c: c, onPressed: _connect)),
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: GhostButton(label: t(state.lang, 'action.check'), c: c, onPressed: _checking ? null : _check)),
+            if (_checkResult != null) ...[
+              const SizedBox(height: 10),
+              StatusLine(
+                kind: _checking ? StatusKind.busy : (_checkResult!['ok'] == true ? StatusKind.ok : StatusKind.error),
+                text: _checking
+                    ? t(state.lang, 'ssh.connecting')
+                    : (_checkResult!['ok'] == true
+                        ? (_checkResult!['is_ssh'] == true ? 'SSH service detected' : 'Port open, but no SSH banner')
+                        : friendlyAgentError(_checkResult!['error']?.toString())),
                 c: c,
-                icon: p.savePassword ? Icon(Icons.lock, size: 11, color: c.inkFaint) : null,
-                onPressed: () => _connectFromProfile(p),
               ),
-          ]),
-        ],
-        const SizedBox(height: 14),
-        if (_sessions.isNotEmpty) ...[
-          // Tarayici sekmesi gibi: her sekme ayri, canli bir SSH oturumu.
-          SizedBox(
-            height: 34,
-            child: ListView(scrollDirection: Axis.horizontal, children: [
-              for (final s in _sessions) _SessionTab(session: s, active: s.id == _activeId, c: c, onTap: () => setState(() => _activeId = s.id), onClose: () => _closeSession(s.id)),
-            ]),
-          ),
-          const SizedBox(height: 6),
-        ],
-        if (_checkResult != null && _sessions.isEmpty) ...[
-          StatusLine(
-            kind: _checking ? StatusKind.busy : (_checkResult!['ok'] == true ? StatusKind.ok : StatusKind.error),
-            text: _checking
-                ? t(state.lang, 'ssh.connecting')
-                : (_checkResult!['ok'] == true
-                    ? (_checkResult!['is_ssh'] == true ? 'SSH service detected' : 'Port open, but no SSH banner')
-                    : friendlyAgentError(_checkResult!['error']?.toString())),
-            c: c,
-          ),
-          const SizedBox(height: 10),
-          if (_checkResult!['ok'] == true)
-            SectionCard(
-              c: c,
-              child: Text(
-                (_checkResult!['banner']?.toString().isEmpty ?? true) ? '(no banner received)' : _checkResult!['banner'].toString(),
-                style: TextStyle(color: c.inkSoft, fontFamily: 'monospace', fontSize: 13),
-              ),
-            ),
-        ],
-        Expanded(
-          child: activeSession == null
-              ? _EmptyState(c: c, text: _sessions.isEmpty ? t(state.lang, 'ssh.noTabs') : '')
-              : Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: const Color(0xFF0B0B10), borderRadius: BorderRadius.circular(10), border: Border.all(color: c.lineSoft)),
-                  child: activeSession.connecting
-                      ? Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: c.accent)))
-                      : activeSession.error != null
-                          ? Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Text(activeSession.error!, style: TextStyle(color: c.alarm, fontFamily: 'monospace', fontSize: 13)),
-                              ),
-                            )
-                          : TerminalView(activeSession.terminal, controller: activeSession.controller, autofocus: true, backgroundOpacity: 0),
+              if (_checkResult!['ok'] == true && (_checkResult!['banner']?.toString().isNotEmpty ?? false))
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(_checkResult!['banner'].toString(), style: TextStyle(color: c.inkFaint, fontFamily: 'monospace', fontSize: 11)),
                 ),
+            ],
+            if (state.sshProfiles.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Divider(height: 1, color: c.lineSoft),
+              const SizedBox(height: 14),
+              Caption(t(state.lang, 'ssh.recent'), c),
+              const SizedBox(height: 8),
+              for (final p in state.sshProfiles)
+                _SavedRow(profile: p, c: c, onTap: () => _connectFromProfile(p), onDelete: () => state.removeSshProfile(p.id)),
+            ],
+          ]),
         ),
-      ]),
+      ),
+      Expanded(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(children: [
+            if (_sessions.isNotEmpty) ...[
+              SizedBox(
+                height: 34,
+                child: ListView(scrollDirection: Axis.horizontal, children: [
+                  for (final s in _sessions) _SessionTab(session: s, active: s.id == _activeId, c: c, onTap: () => setState(() => _activeId = s.id), onClose: () => _closeSession(s.id)),
+                ]),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Expanded(
+              child: activeSession == null
+                  ? _EmptyState(c: c, text: _sessions.isEmpty ? t(state.lang, 'ssh.noTabs') : '')
+                  : Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: const Color(0xFF0B0B10), borderRadius: BorderRadius.circular(10), border: Border.all(color: c.lineSoft)),
+                      child: activeSession.connecting
+                          ? Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: c.accent)))
+                          : activeSession.error != null
+                              ? Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Text(activeSession.error!, style: TextStyle(color: c.alarm, fontFamily: 'monospace', fontSize: 13)),
+                                  ),
+                                )
+                              : TerminalView(activeSession.terminal, controller: activeSession.controller, autofocus: true, backgroundOpacity: 0),
+                    ),
+            ),
+          ]),
+        ),
+      ),
+    ]);
+  }
+}
+
+class _SavedRow extends StatefulWidget {
+  final SshProfile profile;
+  final AppColors c;
+  final VoidCallback onTap, onDelete;
+  const _SavedRow({required this.profile, required this.c, required this.onTap, required this.onDelete});
+  @override
+  State<_SavedRow> createState() => _SavedRowState();
+}
+
+class _SavedRowState extends State<_SavedRow> {
+  bool _hover = false;
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.c;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          decoration: BoxDecoration(color: _hover ? c.fillHover : Colors.transparent, borderRadius: BorderRadius.circular(7)),
+          child: Row(children: [
+            Icon(Icons.dns_outlined, size: 13, color: c.inkFaint),
+            const SizedBox(width: 8),
+            Expanded(child: Text(widget.profile.label, style: TextStyle(color: c.inkSoft, fontSize: 12.5), overflow: TextOverflow.ellipsis)),
+            if (widget.profile.savePassword) Icon(Icons.lock, size: 11, color: c.inkGhost),
+            if (_hover) ...[
+              const SizedBox(width: 6),
+              GestureDetector(onTap: widget.onDelete, child: Icon(Icons.close, size: 13, color: c.inkFaint)),
+            ],
+          ]),
+        ),
+      ),
     );
   }
 }
