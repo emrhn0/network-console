@@ -8,7 +8,12 @@ import 'package:path_provider/path_provider.dart';
 /// ile ayni: Flutter burada sadece eski WebView2/HTML katmaninin yerini alir,
 /// arka uctaki olcum mantigi (ping/traceroute/dns/...) hic degismez.
 class Agent {
-  static const List<int> portRange = [8787, 8788, 8789, 8790, 8791, 8792, 8793, 8794, 8795, 8796];
+  // v2 kendi port araligini kullanir. 8787 bilerek DISARIDA birakildi: eski
+  // 1.5.x kurulumu (ayri bir uygulama, ayri bir ajan surumu) orayi tutuyor
+  // olabiliyor ve o ajan yeni uc noktalari (SSH/SNMP/WoL) tanimadigi icin
+  // "not found" donuyordu. Ayri aralik = iki surum yan yana dursa bile hicbir
+  // zaman ayni surece baglanmayiz.
+  static const List<int> portRange = [8877, 8878, 8879, 8880, 8881, 8882, 8883, 8884, 8885, 8886];
   // ping-agent.py /api/health icindeki "version" alaniyla eslesir - agent
   // yeni /api/... rotalari eklediginde burada da artirilir. Kullanicinin
   // makinesinde bir onceki kurulumdan kalip arka planda calismaya devam
@@ -19,7 +24,7 @@ class Agent {
   int? port;
   Map<String, dynamic>? lastHealth;
 
-  String get base => 'http://127.0.0.1:${port ?? 8787}';
+  String get base => 'http://127.0.0.1:${port ?? portRange.first}';
 
   Directory get _here => Directory(File(Platform.resolvedExecutable).parent.path);
 
@@ -70,23 +75,34 @@ class Agent {
     return null;
   }
 
-  Future<int> _pickPort() async {
+  /// Once port.txt'teki, sonra araliktaki portlari tarar. Yeterince yeni bir
+  /// ajan bulursa portunu doner; ESKI surumlu ajan bulduklarini [stale]
+  /// listesine yazar (cagiran taraf onlari kapatmayi/atlamayi secer).
+  Future<int?> _findCompatiblePort(List<int> stale) async {
     int? preferred;
     try {
       final f = await _portFile();
       if (f.existsSync()) preferred = int.tryParse(f.readAsStringSync().trim());
     } catch (_) {}
+    // Eski kurulumdan kalma bir port.txt bizi kendi araligimizin disina
+    // (orn. 1.5.x'in 8787'sine) goturmesin.
+    if (preferred != null && !portRange.contains(preferred)) preferred = null;
 
-    if (preferred != null && await _probe(preferred)) return preferred;
-    for (final p in portRange) {
-      if (await _probe(p)) return p;
+    final candidates = <int>[
+      ?preferred,
+      ...portRange.where((p) => p != preferred),
+    ];
+
+    for (final p in candidates) {
+      if (!await _probe(p)) continue;
+      final v = (lastHealth?['version'] as num?)?.toInt() ?? 0;
+      if (v >= kMinAgentVersion) return p;
+      stale.add(p);
     }
-    if (preferred != null && portRange.contains(preferred)) {
-      for (var i = 0; i < 8; i++) {
-        if (await _portFree(preferred)) return preferred;
-        await Future.delayed(const Duration(milliseconds: 300));
-      }
-    }
+    return null;
+  }
+
+  Future<int> _freePort() async {
     for (final p in portRange) {
       if (await _portFree(p)) return p;
     }
@@ -100,24 +116,42 @@ class Agent {
     } catch (_) {}
   }
 
-  /// Ajani bulur/baslatir. Zaten calisiyorsa yenisini baslatmaz.
+  /// Ajani bulur/baslatir. Yeterince yeni bir ajan zaten calisiyorsa yenisini
+  /// baslatmaz; eski surumlu bir ajan portu tutuyorsa once onu kapatmayi
+  /// dener, kapanmiyorsa o portu tamamen birakip baska bir porta taze ajan
+  /// kurar.
   Future<bool> ensureRunning() async {
-    final p = await _pickPort();
-    port = p;
-    await _savePort(p);
-    if (await _probe(p)) {
-      final runningVersion = (lastHealth?['version'] as num?)?.toInt() ?? 0;
-      if (runningVersion >= kMinAgentVersion) return true;
-      // eski surumlu bir ajan calisiyor - kapat ve asagida taze baslat
+    final stale = <int>[];
+    final ready = await _findCompatiblePort(stale);
+    if (ready != null) {
+      port = ready;
+      await _savePort(ready);
+      return true;
+    }
+
+    // Eski surumlu ajan(lar) buldu: nazikce kapanmalarini iste. /api/shutdown
+    // sadece version >= 5 ajanlarda var - daha eskisi 404 doner ve yasamaya
+    // devam eder; ayrica surec yonetici haklariyla baslatilmis olabilir, o
+    // zaman disaridan oldurmek de mumkun degil. Bu yuzden kapanmayan portu
+    // ZORLAMIYORUZ, asagida baska bos bir port seciyoruz.
+    for (final p in stale) {
       try {
-        await http.get(Uri.parse('http://127.0.0.1:$p/api/shutdown')).timeout(const Duration(seconds: 2));
+        await http
+            .get(Uri.parse('http://127.0.0.1:$p/api/shutdown'))
+            .timeout(const Duration(seconds: 2));
       } catch (_) {}
-      final freedDeadline = DateTime.now().add(const Duration(seconds: 5));
+    }
+    if (stale.isNotEmpty) {
+      final freedDeadline = DateTime.now().add(const Duration(seconds: 4));
       while (DateTime.now().isBefore(freedDeadline)) {
-        if (!await _probe(p, timeoutMs: 300)) break;
+        if (await _portFree(stale.first)) break;
         await Future.delayed(const Duration(milliseconds: 200));
       }
     }
+
+    final p = await _freePort();
+    port = p;
+    await _savePort(p);
 
     final bin = _agentBinary();
     try {
