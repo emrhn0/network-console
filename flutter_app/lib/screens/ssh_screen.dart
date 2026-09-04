@@ -22,6 +22,7 @@ class _SshSession {
   SSHSession? shell;
   final Terminal terminal = Terminal(maxLines: 8000);
   final TerminalController controller = TerminalController();
+  final FocusNode focusNode = FocusNode();
   bool connecting = true;
   String? error;
   _SshSession({required this.id, required this.label});
@@ -53,6 +54,7 @@ class _SshScreenState extends State<SshScreen> {
     for (final s in _sessions) {
       s.shell?.close();
       s.client?.close();
+      s.focusNode.dispose();
     }
     _host.dispose();
     _port.dispose();
@@ -140,6 +142,12 @@ class _SshScreenState extends State<SshScreen> {
       // Soket kuruldu - terminali goster, PuTTY tarzi "login as:"/"password:"
       // sadece formda eksik olan alan(lar) icin sorulur.
       setState(() => session.connecting = false);
+      // Terminal widget'i simdi kuruldu (autofocus tek basina her zaman
+      // odagi almiyor, host formundaki alan hala odaklı kalabiliyordu) -
+      // frame ciziminden hemen sonra klavye odagini ZORLA terminale ver.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _activeId == session.id) session.focusNode.requestFocus();
+      });
 
       if (username.isEmpty) {
         username = (await _promptLine(session.terminal, 'login as: ')).trim();
@@ -195,6 +203,13 @@ class _SshScreenState extends State<SshScreen> {
     }
     setState(() { _remember = p.savePassword; });
     await _connect();
+  }
+
+  void _activateSession(_SshSession s) {
+    setState(() => _activeId = s.id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _activeId == s.id) s.focusNode.requestFocus();
+    });
   }
 
   void _closeSession(String id) {
@@ -287,7 +302,7 @@ class _SshScreenState extends State<SshScreen> {
               SizedBox(
                 height: 34,
                 child: ListView(scrollDirection: Axis.horizontal, children: [
-                  for (final s in _sessions) _SessionTab(session: s, active: s.id == _activeId, c: c, onTap: () => setState(() => _activeId = s.id), onClose: () => _closeSession(s.id)),
+                  for (final s in _sessions) _SessionTab(session: s, active: s.id == _activeId, c: c, onTap: () => _activateSession(s), onClose: () => _closeSession(s.id)),
                 ]),
               ),
               const SizedBox(height: 8),
@@ -308,7 +323,17 @@ class _SshScreenState extends State<SshScreen> {
                                     child: Text(activeSession.error!, style: TextStyle(color: c.alarm, fontFamily: 'monospace', fontSize: 13)),
                                   ),
                                 )
-                              : TerminalView(activeSession.terminal, controller: activeSession.controller, autofocus: true, backgroundOpacity: 0),
+                              : GestureDetector(
+                                  behavior: HitTestBehavior.translucent,
+                                  onTap: () => activeSession.focusNode.requestFocus(),
+                                  child: TerminalView(
+                                    activeSession.terminal,
+                                    controller: activeSession.controller,
+                                    focusNode: activeSession.focusNode,
+                                    autofocus: true,
+                                    backgroundOpacity: 0,
+                                  ),
+                                ),
                     ),
             ),
           ]),
