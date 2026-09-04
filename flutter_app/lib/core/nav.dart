@@ -23,7 +23,6 @@ const List<NavItem> kTools = [
 
 /// Ileri seviye/az kullanilan araclar - sidebar'da ayri bir grupta gosterilir.
 const List<NavItem> kAdvancedTools = [
-  NavItem('ssh', 'SSH', Icons.terminal),
   NavItem('snmp', 'SNMP', Icons.router),
   NavItem('wol', 'Wake-on-LAN', Icons.power_settings_new),
 ];
@@ -31,6 +30,6 @@ const List<NavItem> kAdvancedTools = [
 const Map<String, String> kToolLabel = {
   'ping': 'Ping', 'trace': 'Trace', 'telnet': 'Telnet', 'dns': 'DNS',
   'cert': 'Certificate', 'http': 'HTTP', 'sweep': 'IP Scan', 'subnet': 'Subnet',
-  'urlcheck': 'URL Check', 'ssh': 'SSH', 'snmp': 'SNMP', 'wol': 'Wake-on-LAN',
+  'urlcheck': 'URL Check', 'snmp': 'SNMP', 'wol': 'Wake-on-LAN',
   'settings': 'Settings', 'dashboard': 'Dashboard',
 };
