@@ -39,7 +39,10 @@ class _SshScreenState extends State<SshScreen> {
   final _port = TextEditingController(text: '22');
   final _user = TextEditingController();
   final _pass = TextEditingController();
+  final _name = TextEditingController();
   bool _remember = false;
+  String? _folderId;
+  final Set<String> _collapsedFolders = {};
 
   // Eski "banner probe" (kimlik dogrulamasiz erisilebilirlik testi) - hala
   // kullanisli (parola gerektirmez), Check butonuyla ayri calisir.
@@ -60,6 +63,7 @@ class _SshScreenState extends State<SshScreen> {
     _port.dispose();
     _user.dispose();
     _pass.dispose();
+    _name.dispose();
     super.dispose();
   }
 
@@ -126,10 +130,13 @@ class _SshScreenState extends State<SshScreen> {
     final port = int.tryParse(_port.text.trim()) ?? 22;
     var username = _user.text.trim();
     var password = _pass.text;
+    final name = _name.text.trim();
     final rememberChecked = _remember;
+    final folderId = _folderId;
 
     final id = '${DateTime.now().microsecondsSinceEpoch}';
-    final session = _SshSession(id: id, label: username.isEmpty ? host : '$username@$host');
+    final initialLabel = name.isNotEmpty ? name : (username.isEmpty ? host : '$username@$host');
+    final session = _SshSession(id: id, label: initialLabel);
     setState(() { _sessions.add(session); _activeId = id; });
 
     // Bir sonraki baglanti icin alanlari temizlemiyoruz (ayni host'a tekrar
@@ -153,7 +160,7 @@ class _SshScreenState extends State<SshScreen> {
         username = (await _promptLine(session.terminal, 'login as: ')).trim();
         if (!mounted || !_sessions.contains(session)) return;
         if (username.isEmpty) throw Exception('login cancelled');
-        setState(() => session.label = '$username@$host');
+        if (name.isEmpty) setState(() => session.label = '$username@$host');
       }
       if (password.isEmpty) {
         password = await _promptLine(session.terminal, '$username@$host\'s password: ', echo: false);
@@ -182,9 +189,9 @@ class _SshScreenState extends State<SshScreen> {
       // kullanici adi/sifre de (form bos birakilmis olsa bile) "Remember"
       // isaretliyse kaydedilir.
       if (rememberChecked) {
-        await state.saveSshProfile(host: host, port: port, username: username, password: password);
+        await state.saveSshProfile(host: host, port: port, username: username, password: password, name: name, folderId: folderId);
       } else {
-        await state.saveSshProfile(host: host, port: port, username: username);
+        await state.saveSshProfile(host: host, port: port, username: username, name: name, folderId: folderId);
       }
     } catch (e) {
       if (!mounted) return;
@@ -196,13 +203,53 @@ class _SshScreenState extends State<SshScreen> {
     _host.text = p.host;
     _port.text = '${p.port}';
     _user.text = p.username;
+    _name.text = p.name;
     _pass.text = '';
     if (p.savePassword) {
       final pw = await context.read<AppState>().sshPassword(p.id);
       if (pw != null) _pass.text = pw;
     }
-    setState(() { _remember = p.savePassword; });
+    setState(() { _remember = p.savePassword; _folderId = p.folderId; });
     await _connect();
+  }
+
+  /// Yeni klasor adi sorar (mRemoteNG'deki "musteri musteri" klasorlerinin
+  /// karsiligi) - olusturulan klasor formdaki secime otomatik atanir.
+  Future<void> _promptNewFolder() async {
+    final state = context.read<AppState>();
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t(state.lang, 'ssh.newFolder')),
+        content: TextField(controller: ctrl, autofocus: true, decoration: InputDecoration(hintText: t(state.lang, 'ssh.folderNameHint'))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t(state.lang, 'action.cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: Text(t(state.lang, 'action.create'))),
+        ],
+      ),
+    );
+    if (name != null && name.trim().isNotEmpty) {
+      final f = state.createSshFolder(name);
+      setState(() => _folderId = f.id);
+    }
+  }
+
+  Future<void> _promptRename(SshProfile p) async {
+    final state = context.read<AppState>();
+    final ctrl = TextEditingController(text: p.name);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t(state.lang, 'action.rename')),
+        content: TextField(controller: ctrl, autofocus: true, decoration: InputDecoration(hintText: t(state.lang, 'ssh.nameHint'))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t(state.lang, 'action.cancel'))),
+          TextButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: Text(t(state.lang, 'action.save'))),
+        ],
+      ),
+    );
+    if (name != null) state.renameSshProfile(p.id, name);
   }
 
   void _activateSession(_SshSession s) {
@@ -243,6 +290,8 @@ class _SshScreenState extends State<SshScreen> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Caption(t(state.lang, 'ssh.newTab'), c),
             const SizedBox(height: 12),
+            LabeledField(label: t(state.lang, 'field.name'), controller: _name, c: c, hint: t(state.lang, 'ssh.nameHint'), onSubmitted: (_) => _connect()),
+            const SizedBox(height: 8),
             LabeledField(label: t(state.lang, 'field.host'), controller: _host, c: c, hint: '192.168.1.1', onSubmitted: (_) => _connect()),
             const SizedBox(height: 8),
             LabeledField(label: t(state.lang, 'field.port'), controller: _port, c: c, hint: '22'),
@@ -250,6 +299,47 @@ class _SshScreenState extends State<SshScreen> {
             LabeledField(label: t(state.lang, 'field.username'), controller: _user, c: c, hint: t(state.lang, 'ssh.usernameHint')),
             const SizedBox(height: 8),
             LabeledField(label: t(state.lang, 'field.password'), controller: _pass, c: c, obscure: true, onSubmitted: (_) => _connect()),
+            const SizedBox(height: 8),
+            Caption(t(state.lang, 'ssh.folder'), c),
+            const SizedBox(height: 4),
+            Row(children: [
+              Expanded(
+                child: Container(
+                  height: 38,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(color: c.bgRise, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.lineSoft)),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String?>(
+                      value: state.sshFolders.any((f) => f.id == _folderId) ? _folderId : null,
+                      isExpanded: true,
+                      isDense: true,
+                      icon: Icon(Icons.expand_more, size: 16, color: c.inkFaint),
+                      style: TextStyle(color: c.inkSoft, fontSize: 12.5),
+                      dropdownColor: c.bgHigh,
+                      items: [
+                        DropdownMenuItem<String?>(value: null, child: Text(t(state.lang, 'ssh.noFolder'))),
+                        for (final f in state.sshFolders) DropdownMenuItem<String?>(value: f.id, child: Text(f.name, overflow: TextOverflow.ellipsis)),
+                      ],
+                      onChanged: (v) => setState(() => _folderId = v),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: _promptNewFolder,
+                  child: Container(
+                    width: 38,
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: c.bgRise, borderRadius: BorderRadius.circular(8), border: Border.all(color: c.lineSoft)),
+                    child: Icon(Icons.create_new_folder_outlined, size: 16, color: c.inkSoft),
+                  ),
+                ),
+              ),
+            ]),
             const SizedBox(height: 10),
             MouseRegion(
               cursor: SystemMouseCursors.click,
@@ -282,14 +372,67 @@ class _SshScreenState extends State<SshScreen> {
                   child: Text(_checkResult!['banner'].toString(), style: TextStyle(color: c.inkFaint, fontFamily: 'monospace', fontSize: 11)),
                 ),
             ],
-            if (state.sshProfiles.isNotEmpty) ...[
+            if (state.sshProfiles.isNotEmpty || state.sshFolders.isNotEmpty) ...[
               const SizedBox(height: 20),
               Divider(height: 1, color: c.lineSoft),
               const SizedBox(height: 14),
               Caption(t(state.lang, 'ssh.recent'), c),
               const SizedBox(height: 8),
-              for (final p in state.sshProfiles)
-                _SavedRow(profile: p, c: c, onTap: () => _connectFromProfile(p), onDelete: () => state.removeSshProfile(p.id)),
+              // mRemoteNG'deki musteri klasorleri: her klasor aç/kapa,
+              // icindeki baglantilar isim-IP formatinda listelenir.
+              for (final f in state.sshFolders) ...[
+                _FolderRow(
+                  folder: f,
+                  c: c,
+                  collapsed: _collapsedFolders.contains(f.id),
+                  count: state.sshProfiles.where((p) => p.folderId == f.id).length,
+                  onToggle: () => setState(() {
+                    if (!_collapsedFolders.add(f.id)) _collapsedFolders.remove(f.id);
+                  }),
+                  onRename: () async {
+                    final ctrl = TextEditingController(text: f.name);
+                    final name = await showDialog<String>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(t(state.lang, 'action.rename')),
+                        content: TextField(controller: ctrl, autofocus: true),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(t(state.lang, 'action.cancel'))),
+                          TextButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: Text(t(state.lang, 'action.save'))),
+                        ],
+                      ),
+                    );
+                    if (name != null) state.renameSshFolder(f.id, name);
+                  },
+                  onDelete: () => state.deleteSshFolder(f.id),
+                ),
+                if (!_collapsedFolders.contains(f.id))
+                  for (final p in state.sshProfiles.where((p) => p.folderId == f.id))
+                    Padding(
+                      padding: const EdgeInsets.only(left: 14),
+                      child: _SavedRow(
+                        profile: p,
+                        c: c,
+                        lang: state.lang,
+                        folders: state.sshFolders,
+                        onTap: () => _connectFromProfile(p),
+                        onDelete: () => state.removeSshProfile(p.id),
+                        onRename: () => _promptRename(p),
+                        onMove: (folderId) => state.moveSshProfile(p.id, folderId),
+                      ),
+                    ),
+              ],
+              for (final p in state.sshProfiles.where((p) => p.folderId == null || !state.sshFolders.any((f) => f.id == p.folderId)))
+                _SavedRow(
+                  profile: p,
+                  c: c,
+                  lang: state.lang,
+                  folders: state.sshFolders,
+                  onTap: () => _connectFromProfile(p),
+                  onDelete: () => state.removeSshProfile(p.id),
+                  onRename: () => _promptRename(p),
+                  onMove: (folderId) => state.moveSshProfile(p.id, folderId),
+                ),
             ],
           ]),
         ),
@@ -346,8 +489,20 @@ class _SshScreenState extends State<SshScreen> {
 class _SavedRow extends StatefulWidget {
   final SshProfile profile;
   final AppColors c;
-  final VoidCallback onTap, onDelete;
-  const _SavedRow({required this.profile, required this.c, required this.onTap, required this.onDelete});
+  final String lang;
+  final List<SshFolder> folders;
+  final VoidCallback onTap, onDelete, onRename;
+  final ValueChanged<String?> onMove;
+  const _SavedRow({
+    required this.profile,
+    required this.c,
+    required this.lang,
+    required this.folders,
+    required this.onTap,
+    required this.onDelete,
+    required this.onRename,
+    required this.onMove,
+  });
   @override
   State<_SavedRow> createState() => _SavedRowState();
 }
@@ -370,9 +525,81 @@ class _SavedRowState extends State<_SavedRow> {
           child: Row(children: [
             Icon(Icons.dns_outlined, size: 13, color: c.inkFaint),
             const SizedBox(width: 8),
-            Expanded(child: Text(widget.profile.label, style: TextStyle(color: c.inkSoft, fontSize: 12.5), overflow: TextOverflow.ellipsis)),
+            Expanded(child: Text(widget.profile.treeLabel, style: TextStyle(color: c.inkSoft, fontSize: 12.5), overflow: TextOverflow.ellipsis)),
             if (widget.profile.savePassword) Icon(Icons.lock, size: 11, color: c.inkGhost),
             if (_hover) ...[
+              const SizedBox(width: 4),
+              PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
+                icon: Icon(Icons.more_horiz, size: 14, color: c.inkFaint),
+                color: c.bgHigh,
+                itemBuilder: (ctx) => [
+                  PopupMenuItem(value: 'rename', child: Text(t(widget.lang, 'action.rename'))),
+                  PopupMenuItem(value: 'move:none', child: Text('→ ${t(widget.lang, 'ssh.noFolder')}')),
+                  for (final f in widget.folders) PopupMenuItem(value: 'move:${f.id}', child: Text('→ ${f.name}', overflow: TextOverflow.ellipsis)),
+                ],
+                onSelected: (v) {
+                  if (v == 'rename') {
+                    widget.onRename();
+                  } else if (v.startsWith('move:')) {
+                    final target = v.substring(5);
+                    widget.onMove(target == 'none' ? null : target);
+                  }
+                },
+              ),
+              GestureDetector(onTap: widget.onDelete, child: Icon(Icons.close, size: 13, color: c.inkFaint)),
+            ],
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _FolderRow extends StatefulWidget {
+  final SshFolder folder;
+  final AppColors c;
+  final bool collapsed;
+  final int count;
+  final VoidCallback onToggle, onRename, onDelete;
+  const _FolderRow({
+    required this.folder,
+    required this.c,
+    required this.collapsed,
+    required this.count,
+    required this.onToggle,
+    required this.onRename,
+    required this.onDelete,
+  });
+  @override
+  State<_FolderRow> createState() => _FolderRowState();
+}
+
+class _FolderRowState extends State<_FolderRow> {
+  bool _hover = false;
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.c;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onToggle,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 2, top: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          decoration: BoxDecoration(color: _hover ? c.fillHover : Colors.transparent, borderRadius: BorderRadius.circular(7)),
+          child: Row(children: [
+            Icon(widget.collapsed ? Icons.chevron_right : Icons.expand_more, size: 15, color: c.inkFaint),
+            const SizedBox(width: 2),
+            Icon(Icons.folder_outlined, size: 13, color: c.accent),
+            const SizedBox(width: 7),
+            Expanded(child: Text(widget.folder.name, style: TextStyle(color: c.ink, fontSize: 12.5, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+            Text('${widget.count}', style: TextStyle(color: c.inkFaint, fontSize: 11)),
+            if (_hover) ...[
+              const SizedBox(width: 4),
+              GestureDetector(onTap: widget.onRename, child: Icon(Icons.edit_outlined, size: 12, color: c.inkFaint)),
               const SizedBox(width: 6),
               GestureDetector(onTap: widget.onDelete, child: Icon(Icons.close, size: 13, color: c.inkFaint)),
             ],
