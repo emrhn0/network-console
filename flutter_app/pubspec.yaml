@@ -1,7 +1,7 @@
 name: network_console_app
 description: "Network Console - native desktop rewrite"
 publish_to: 'none'
-version: 2.7.6+21
+version: 2.7.7+22
 
 environment:
   sdk: ^3.13.2

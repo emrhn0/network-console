@@ -46,6 +46,11 @@ const Map<String, List<String>> _strings = {
   'action.remove': ['Remove', 'Kaldır'],
   'action.goVt': ["Go to VirusTotal", "VirusTotal'a Git"],
   'action.refresh': ['Refresh', 'Yenile'],
+  'action.cancel': ['Cancel', 'Vazgeç'],
+  'action.update': ['Update', 'Güncelle'],
+
+  'update.title': ['Update available', 'Güncelleme mevcut'],
+  'update.downloading': ['Downloading update…', 'Güncelleme indiriliyor…'],
 
   'settings.vtTitle': ['VirusTotal API Key', 'VirusTotal API Anahtarı'],
   'settings.vtPlaceholder': ['Your own VirusTotal API key', 'Kendi VirusTotal API anahtarınız'],

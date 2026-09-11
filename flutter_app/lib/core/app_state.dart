@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'agent.dart';
+import 'constants.dart';
+import 'update_checker.dart';
 
 class HistoryEntry {
   final String view, summary;
@@ -20,6 +22,10 @@ class AppState extends ChangeNotifier {
   final List<HistoryEntry> history = [];
   DateTime sessionStart = DateTime.now();
 
+  // Guncelleme kontrolu (GitHub Releases). Kalici "bu surumu atla" bayragi
+  // YOK - her acilista tekrar sorulur (kullanici bunu ozellikle istedi).
+  UpdateInfo? updateAvailable;
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     isDark = _prefs?.getBool('nc-dark') ?? false;
@@ -34,6 +40,14 @@ class AppState extends ChangeNotifier {
       // dosya yedeginden anahtar kurtarma girisimi (agent olmasa da dosya okunabilir)
     }
     notifyListeners();
+
+    // Acilisi bloklamadan arka planda kontrol et - internet yoksa/GitHub
+    // erisilemezse checkForUpdate zaten sessizce null doner.
+    UpdateChecker.checkForUpdate(kAppVersion).then((info) {
+      if (info == null) return;
+      updateAvailable = info;
+      notifyListeners();
+    });
   }
 
   void toggleDark(bool v) {
@@ -57,6 +71,11 @@ class AppState extends ChangeNotifier {
   void clearVtKey() {
     vtKey = '';
     _prefs?.remove('nc-vt-key');
+    notifyListeners();
+  }
+
+  void dismissUpdate() {
+    updateAvailable = null;
     notifyListeners();
   }
 
