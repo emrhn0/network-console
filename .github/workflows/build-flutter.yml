@@ -121,6 +121,26 @@ jobs:
           cp dist/NetworkConsole-Agent "$APP/Contents/MacOS/NetworkConsole-Agent"
           chmod +x "$APP/Contents/MacOS/NetworkConsole-Agent"
 
+      - name: Re-sign the bundle (agent lands after Flutter already signed it)
+        shell: bash
+        run: |
+          APP="flutter_app/build/macos/Build/Products/Release/network_console_app.app"
+          # Flutter imzaladiktan SONRA Contents/MacOS'a dosya kopyalamak
+          # _CodeSignature/CodeResources muhrunu kirar. Muhru kirik bir
+          # ad-hoc imza Apple Silicon'da calistirilamaz; macOS bunu
+          # "is damaged and can't be opened" diye reddeder. Icten disa
+          # dogru yeniden imzalayarak muhru tutarli hale getiriyoruz.
+          codesign --force --sign - "$APP/Contents/MacOS/NetworkConsole-Agent"
+          codesign --force --deep --sign - "$APP"
+
+      - name: Verify the seal (fail the build instead of shipping a broken app)
+        shell: bash
+        run: |
+          APP="flutter_app/build/macos/Build/Products/Release/network_console_app.app"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          # Agent'in muhre gerçekten girdigini dogrula - v2.7.7'de girmemisti.
+          grep -q "NetworkConsole-Agent" "$APP/Contents/_CodeSignature/CodeResources"
+
       - name: Zip the .app (ditto keeps the bundle structure intact)
         shell: bash
         run: |
@@ -185,14 +205,26 @@ jobs:
             directly, no install.
 
           ## macOS
+
+          No Terminal needed - just three clicks the first time:
+
           1. Unzip \`Network_Console_${VERSION}_macOS.zip\` and drag
-             \`network_console_app.app\` to **Applications**.
-          2. The app isn't notarized (no paid Apple Developer account), so
-             macOS quarantines it on first download. Run this once in
-             Terminal before opening it:
-             \`\`\`
-             xattr -dr com.apple.quarantine /Applications/network_console_app.app
-             \`\`\`
+             \`network_console_app.app\` into your **Applications** folder.
+          2. Double-click it. macOS says it "cannot be opened because Apple
+             cannot check it for malicious software" - expected: the app is
+             signed, but notarizing it needs a paid Apple Developer account.
+          3. Open **System Settings > Privacy & Security**, scroll down to
+             the Security section, and click **Open Anyway** next to
+             network_console_app. Confirm with Touch ID or your password.
+
+          That is a one-time step. Every launch after that is a normal
+          double-click.
+
+          > Upgrading from 2.7.7 or earlier? Those macOS builds showed a
+          > misleading **"app is damaged and can't be opened"** error and
+          > could not be opened at all - the agent binary was copied into
+          > the bundle after signing, which broke the code-signature seal.
+          > Delete the old copy and use this one.
 
           This app lives on its own line (\`flutter-v2\` branch): if you don't
           like it, 1.5.x keeps working exactly as before, unaffected, on the
